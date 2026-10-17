@@ -1,0 +1,7 @@
+* text=auto eol=lf
+
+# Emitted for every project, not only the `wasm` answer, for the same reason `pnpm-workspace.yaml` is:
+# what a checkout may come to contain is not a property of the answers. `text=auto` above leaves a binary
+# to git's NUL-byte heuristic, and a `.wasm` that a line-ending conversion touches is corrupt in a way
+# nothing reports -- it stops being a module, and every bundler that reads it says so at build time.
+*.wasm binary

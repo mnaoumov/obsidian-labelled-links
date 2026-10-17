@@ -1,0 +1,19 @@
+# pnpm's settings file. Not only for workspaces: since pnpm 10 this is where per-project settings live,
+# and pnpm 12 says outright that "the `pnpm` field in package.json is no longer read by pnpm".
+#
+# pnpm blocks dependency install scripts by default and, unlike npm, treats that as an ERROR rather
+# than a warning -- `pnpm install` fails with ERR_PNPM_IGNORED_BUILDS until each one is named here.
+# Every package below downloads or compiles a native binary, which is exactly what it needs its install
+# script for. Naming one this project does not depend on is harmless, so the list covers what any
+# answer can pull in.
+#
+# `allowBuilds`, not the `onlyBuiltDependencies` list pnpm 10 used: pnpm 12 reads the map form and
+# silently ignores the old key.
+allowBuilds:
+  '@parcel/watcher': true
+  dprint: true
+  edgedriver: true
+  esbuild: true
+  geckodriver: true
+  svelte-preprocess: true
+  unrs-resolver: true

@@ -1,0 +1,37 @@
+{
+  "comment": [
+    "Read automatically by depcheck (`npx depcheck`), which reports declared dependencies nothing appears to use.",
+    "depcheck cannot see a package that is only invoked as a CLI from a script, named as a string in a config, or",
+    "reached by a compiler option, so each name below is a verified false positive with the reference that proves it.",
+    "Anything depcheck still reports is genuinely unused: remove it, or add it here together with its reason.",
+    "The key is `ignores`, depcheck's CLI-style rc name; `ignoreMatches` is the API-only spelling and is silently",
+    "ignored in this file.",
+    "",
+    "@commitlint/cli - `.husky/commit-msg` runs it as the `commitlint` binary.",
+    "cspell - run as a CLI by `scripts/spellcheck.ts`, configured by `cspell.json`.",
+    "czg - run as a CLI by `scripts/commit.ts`.",
+    "dprint - run as a CLI by the format scripts, configured by `dprint.json`.",
+    "husky - run as a CLI by `scripts/prepare.ts`; the hooks in `.husky/` are its output.",
+    "linkinator - run as a CLI by the `lint:md` scripts.",
+    "markdownlint-cli2 - run as a CLI by the `lint:md` scripts, configured by `.markdownlint-cli2.mjs`.",
+    "nano-staged - `.husky/pre-commit` runs it; configured by `scripts/nano-staged-config.ts`.",
+    "obsidian-test-mocks - aliased and loaded as a setup file by name by `defineObsidianPluginVitestConfig` from @mnaoumov/obsidian-dev-toolkit.",
+    "tslib - never imported by name: `importHelpers: true` in `tsconfig.json` makes the compiled output import it.",
+    "typescript - the compiler `tsconfig.json` configures, reached by `tsc`, by the TypeScript step of the bundler and by the editor rather than by an import.",
+    "typescript-eslint - imported by nothing here -- the shared config brings its own -- but the `typescript` pin's check reads its `package.json` for the peer range."
+  ],
+  "ignores": [
+    "@commitlint/cli",
+    "cspell",
+    "czg",
+    "dprint",
+    "husky",
+    "linkinator",
+    "markdownlint-cli2",
+    "nano-staged",
+    "obsidian-test-mocks",
+    "tslib",
+    "typescript",
+    "typescript-eslint"
+  ]
+}

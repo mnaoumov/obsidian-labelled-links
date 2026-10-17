@@ -1,0 +1,16 @@
+/**
+ * You can remove this file if you don't need any styles
+ * See default library styles: https://github.com/mnaoumov/obsidian-lib/blob/main/src/styles/main.scss
+ * See available library css classes: https://github.com/mnaoumov/obsidian-lib/blob/main/src/css-class.ts
+ */
+
+.labelled-links.obsidian-dev-utils {
+  /* Override library styles */
+}
+
+/* The word-count widget the sample editor extension renders. Styled here rather than through
+   `element.style`, so a theme can restyle it. */
+.cm-sample-word-count {
+  font-size: 0.85em;
+  opacity: 0.5;
+}

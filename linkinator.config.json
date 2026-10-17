@@ -1,0 +1,11 @@
+{
+  "comment": [
+    "Read automatically by linkinator, which the `lint:md` script runs from the project root over every Markdown file.",
+    "The links to this plugin's own GitHub repository are skipped: the scaffold wrote them from the project's answers,",
+    "and they return 404 until the repository is created and pushed and its first release is cut, which would leave a",
+    "fresh project failing its own `lint:md` for a reason nothing local can fix. Every other link is still checked."
+  ],
+  "skip": [
+    "^https://github\\.com/mnaoumov/obsidian-labelled-links(?:[/.?#]|$)"
+  ]
+}
