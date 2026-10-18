@@ -1,9 +1,12 @@
 import type {
   App as AppOriginal,
+  MarkdownPostProcessorContext,
   PluginManifest
 } from 'obsidian';
 
 import { castTo } from '@mnaoumov/typescript-lib/object-utils';
+import { ensureNonNullable } from '@mnaoumov/typescript-lib/type-guards';
+import { strictProxy } from '@mnaoumov/typescript-test-toolkit/strict-proxy';
 import { Plugin as ObsidianPlugin } from 'obsidian';
 import { App } from 'obsidian-test-mocks/obsidian';
 import {
@@ -74,6 +77,20 @@ describe('Plugin', () => {
 
     const leaf = await app.workspace.ensureSideLeaf(RELATIONS_VIEW_TYPE, 'right');
     expect(leaf.view).toBeInstanceOf(RelationsView);
+  });
+
+  it('registers the link badges for Live Preview and Reading view', async () => {
+    const plugin = new Plugin(app, manifest);
+    const registerEditorExtensionSpy = vi.spyOn(plugin, 'registerEditorExtension');
+    const registerMarkdownPostProcessorSpy = vi.spyOn(plugin, 'registerMarkdownPostProcessor');
+    await plugin.onload();
+    expect(registerEditorExtensionSpy).toHaveBeenCalledTimes(1);
+    expect(registerMarkdownPostProcessorSpy).toHaveBeenCalledTimes(1);
+
+    const postProcessor = ensureNonNullable(registerMarkdownPostProcessorSpy.mock.calls[0]?.[0]);
+    const el = createDiv();
+    await postProcessor(el, strictProxy<MarkdownPostProcessorContext>({ getSectionInfo: () => null, sourcePath: 'Alice.md' }));
+    expect(el.childElementCount).toBe(0);
   });
 
   it('gives the index the registry from the settings, and a new one whenever they are saved', async () => {

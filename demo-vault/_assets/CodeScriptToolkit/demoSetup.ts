@@ -37,6 +37,23 @@ export async function openRelationsPane(app: App, notePath: string): Promise<voi
 }
 
 /**
+ * Opens a note in Reading view or in Live Preview, where the plugin puts a badge with the label after each
+ * labelled link.
+ *
+ * Manual equivalent: open the note, then pick **Reading view** or **Live Preview** from the `...` menu in the
+ * note's header (or press `Ctrl+E` / `Cmd+E` to switch between reading and editing).
+ */
+export async function openNoteIn(app: App, notePath: string, mode: 'live-preview' | 'reading'): Promise<void> {
+  const file = app.vault.getFileByPath(notePath);
+  if (!file) {
+    new Notice(`${notePath} is missing from this vault.`);
+    return;
+  }
+  const state = mode === 'reading' ? { mode: 'preview' } : { mode: 'source', source: false };
+  await app.workspace.getLeaf(false).openFile(file, { state });
+}
+
+/**
  * Sets the plugin's relation registry to the given definitions.
  *
  * `configureCommunityPlugin` routes through the plugin's own settings component while it is loaded, so the

@@ -1,7 +1,5 @@
 import type {
   IconName,
-  Reference,
-  ReferenceCache,
   TFile,
   WorkspaceLeaf
 } from 'obsidian';
@@ -20,6 +18,10 @@ import type {
   RelationIndexComponent
 } from '../relation-index-component.ts';
 
+import {
+  getNoteName,
+  isReferenceCache
+} from '../relation-helpers.ts';
 import { RelationDirection } from '../relation-index-component.ts';
 import { normalizeLabel } from '../relation-registry.ts';
 
@@ -193,7 +195,7 @@ export class RelationsView extends ItemView {
     const rowEl = containerEl.createDiv({ cls: 'labelled-links-relation' });
     const linkEl = rowEl.createEl('a', {
       cls: ['internal-link', 'labelled-links-relation-link'],
-      text: isResolved ? getBasename(otherPath) : otherPath
+      text: isResolved ? getNoteName(otherPath) : otherPath
     });
     linkEl.toggleClass('is-unresolved', !isResolved);
     linkEl.addEventListener('click', (event_) => {
@@ -244,11 +246,6 @@ export class RelationsView extends ItemView {
   }
 }
 
-function getBasename(path: string): string {
-  const name = path.slice(path.lastIndexOf('/') + 1);
-  return name.endsWith('.md') ? name.slice(0, -'.md'.length) : name;
-}
-
 /**
  * Groups labelled relations by label, ignoring case, in label order. A group is titled with the spelling its
  * first relation uses.
@@ -272,8 +269,4 @@ function groupByLabel(relations: readonly LabelledRelation[]): RelationGroup[] {
 
 function isLabelledRelation(relation: Relation): relation is LabelledRelation {
   return relation.label !== null;
-}
-
-function isReferenceCache(reference: Reference): reference is ReferenceCache {
-  return 'position' in reference;
 }
