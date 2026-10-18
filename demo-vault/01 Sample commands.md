@@ -19,7 +19,7 @@ Manual equivalent: open the Command Palette (`Ctrl+P` / `Cmd+P`) and run **Label
 
 An **editor** command: it only appears when a note is open for editing, and it acts on the cursor. This one inserts text where the cursor is.
 
-Editor commands need a live editor, and this vault opens notes in reading view — so the button below opens [Scratch note](<./Materials/01 Sample commands/Scratch note.md>) in Source mode first, puts the cursor at the end, and only then runs the command.
+Editor commands need a live editor, and this vault opens notes in reading view — so the button below opens the scratch note (`Materials/01 Sample commands/Scratch note.md`, created on first use) in Source mode first, puts the cursor at the end, and only then runs the command.
 
 ```code-button
 ---
