@@ -9,6 +9,11 @@ const EMPTY = '';
 
 const REGISTRY_TEXT_AREA_ROWS = 8;
 
+/**
+ * The registry field's class, which widens it so a pair like `employee <-> employer` fits on its line.
+ */
+const REGISTRY_TEXT_AREA_CLASS = 'labelled-links-registry';
+
 export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
   protected override getSettingDefinitionItems(): SettingDefinitionItem[] {
     return [
@@ -27,6 +32,7 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
           setting.addMultipleText((multipleText) => {
             this.bind({ propertyName: 'relationDefinitions', valueComponent: multipleText });
             multipleText.inputEl.rows = REGISTRY_TEXT_AREA_ROWS;
+            multipleText.inputEl.addClass(REGISTRY_TEXT_AREA_CLASS);
           });
         }
       })

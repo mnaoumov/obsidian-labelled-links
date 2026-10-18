@@ -8,6 +8,29 @@ A link in [Obsidian](https://obsidian.md/) says only that two notes are connecte
 
 It is meant to sit alongside [`Breadcrumbs`](https://community.obsidian.md/plugins/breadcrumbs), not replace it: Breadcrumbs builds hierarchies and their navigation, and this plugin labels the individual links.
 
+<!-- markdownlint-disable MD033 -->
+
+<a href="https://github.com/mnaoumov/obsidian-labelled-links/blob/HEAD/images/screenshots/screenshot-desktop-1.png"><img src="images/screenshots/screenshot-desktop-1.png" alt="Alice links Bob as child, so Bob reads it as parent" width="600"></a>
+
+<details>
+<summary>More screenshots</summary>
+
+<div>
+<a href="https://github.com/mnaoumov/obsidian-labelled-links/blob/HEAD/images/screenshots/screenshot-desktop-2.png"><img src="images/screenshots/screenshot-desktop-2.png" alt="Every relation of a note, both ways, with its plain links" width="600"></a>
+<a href="https://github.com/mnaoumov/obsidian-labelled-links/blob/HEAD/images/screenshots/screenshot-desktop-3.png"><img src="images/screenshots/screenshot-desktop-3.png" alt="The label sits on the link, and its tooltip reads both ways" width="600"></a>
+<a href="https://github.com/mnaoumov/obsidian-labelled-links/blob/HEAD/images/screenshots/screenshot-desktop-4.png"><img src="images/screenshots/screenshot-desktop-4.png" alt="The same badge while you edit, in Live Preview" width="600"></a>
+<a href="https://github.com/mnaoumov/obsidian-labelled-links/blob/HEAD/images/screenshots/screenshot-desktop-5.png"><img src="images/screenshots/screenshot-desktop-5.png" alt="Each label pair is declared once, in the relation registry" width="600"></a>
+<a href="https://github.com/mnaoumov/obsidian-labelled-links/blob/HEAD/images/screenshots/screenshot-mobile-1.png"><img src="images/screenshots/screenshot-mobile-1.png" alt="Alice links Bob as child, so Bob reads it as parent" width="270"></a>
+<a href="https://github.com/mnaoumov/obsidian-labelled-links/blob/HEAD/images/screenshots/screenshot-mobile-2.png"><img src="images/screenshots/screenshot-mobile-2.png" alt="Every relation of a note, both ways, with its plain links" width="270"></a>
+<a href="https://github.com/mnaoumov/obsidian-labelled-links/blob/HEAD/images/screenshots/screenshot-mobile-3.png"><img src="images/screenshots/screenshot-mobile-3.png" alt="The label sits on the link, and its tooltip reads both ways" width="270"></a>
+<a href="https://github.com/mnaoumov/obsidian-labelled-links/blob/HEAD/images/screenshots/screenshot-mobile-4.png"><img src="images/screenshots/screenshot-mobile-4.png" alt="The same badge while you edit, in Live Preview" width="270"></a>
+<a href="https://github.com/mnaoumov/obsidian-labelled-links/blob/HEAD/images/screenshots/screenshot-mobile-5.png"><img src="images/screenshots/screenshot-mobile-5.png" alt="Each label pair is declared once, in the relation registry" width="270"></a>
+</div>
+
+</details>
+
+<!-- markdownlint-enable MD033 -->
+
 ## Demo vault
 
 **The documentation is an interactive demo vault.** Its notes explain how a link becomes a relation and how each end reads it, with buttons that open the relations pane, show the badges, change the registry and query the API.
