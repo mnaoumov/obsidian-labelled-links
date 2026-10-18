@@ -1,11 +1,7 @@
 import { wrapCliTask } from '@mnaoumov/typescript-dev-toolkit/cli-utils';
 import { test } from '@mnaoumov/typescript-dev-toolkit/test-runners/vitest';
 
-// `integration-tests:desktop` and `integration-tests:android` are declared by
-// `defineObsidianPluginVitestConfig` too, but they are deliberately not run here: the first drives a real
-// Obsidian install and the second needs a provisioned Android emulator, so a freshly generated project
-// Would fail its own `test:integration` on any machine that has neither. Add them once you have set those
-// Up. Run them one at a time — the integration projects share a single Obsidian and a single device.
+// The integration projects share a single Obsidian and a single device, so they run one at a time.
 //
 // `integration-tests:desktop-performance` is declared for every plugin as well, but it is left out for a different reason, and it stays out even once you have a desktop Obsidian set up.
 // The reason is the fixture rather than the cost: a perf suite needs its own generated, populated vault, sized through env vars, and this aggregate's small temporary vault is the wrong one.
@@ -18,5 +14,11 @@ await wrapCliTask(async () => {
   });
   await test({
     projects: ['integration-tests:demo-vault']
+  });
+  await test({
+    projects: ['integration-tests:android']
+  });
+  await test({
+    projects: ['integration-tests:desktop']
   });
 });
