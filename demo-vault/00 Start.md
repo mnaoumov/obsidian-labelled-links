@@ -15,7 +15,7 @@ caption: Rebuild the relation index
 require('/demoSetup.ts').rebuildRelationIndex(app);
 ```
 
-A notice should have appeared in the top-right corner, saying how many relations the plugin found in this vault. That is the **Labelled Links: Rebuild relation index** command running, the same thing you get from the Command Palette (`Ctrl+P` / `Cmd+P`).
+A notice should have appeared in the top-right corner, saying how many relations the plugin found in this vault. That is the **`Labelled Links`: Rebuild relation index** command running, the same thing you get from the Command Palette (`Ctrl+P` / `Cmd+P`).
 
 Every button in this vault also states its **manual equivalent**, so you learn the real steps rather than depending on the buttons.
 

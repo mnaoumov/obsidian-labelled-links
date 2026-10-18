@@ -11,7 +11,7 @@ caption: Open Alice and the relations pane
 await require('/demoSetup.ts').openRelationsPane(app, 'Materials/01 Relations/Alice.md');
 ```
 
-Manual equivalent: open [Alice](<./Materials/01 Relations/Alice.md>), then open the Command Palette (`Ctrl+P` / `Cmd+P`) and run **Labelled Links: Open relations pane**. On mobile the pane opens in the right drawer.
+Manual equivalent: open [Alice](<./Materials/01 Relations/Alice.md>), then open the Command Palette (`Ctrl+P` / `Cmd+P`) and run **`Labelled Links`: Open relations pane**. On mobile the pane opens in the right drawer.
 
 The pane has up to three sections:
 

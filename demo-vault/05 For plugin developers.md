@@ -83,7 +83,7 @@ caption: Rebuild the relation index
 require('/demoSetup.ts').rebuildRelationIndex(app);
 ```
 
-Manual equivalent: run **Labelled Links: Rebuild relation index** from the Command Palette.
+Manual equivalent: run **`Labelled Links`: Rebuild relation index** from the Command Palette.
 
 When you are done, stop listening, and put Alice's line back if you changed it:
 
