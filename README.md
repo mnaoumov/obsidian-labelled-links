@@ -16,7 +16,7 @@ It is meant to sit alongside [`Breadcrumbs`](https://community.obsidian.md/plugi
 
 A copy of the vault ships with every release. You can access it via any of the following:
 
-1. Running the **Labelled Links: Open demo vault** command.
+1. Running the **`Labelled Links`: Open demo vault** command.
 2. Downloading `labelled-links-demo-vault.zip` from the [Releases](https://github.com/mnaoumov/obsidian-labelled-links/releases). It unzips into a single `labelled-links-demo-vault-<version>` folder.
 3. Browsing its source in [`demo-vault/`](./demo-vault/README.md) in this repository.
 

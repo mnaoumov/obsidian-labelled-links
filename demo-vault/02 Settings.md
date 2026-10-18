@@ -1,8 +1,8 @@
 # Settings
 
-Every setting Labelled Links stores, listed by the **key it is written under in `data.json`** rather than by its display label — that is what you see when you open the file, hit a sync conflict, or read a support thread.
+Every setting `Labelled Links` stores, listed by the **key it is written under in `data.json`** rather than by its display label — that is what you see when you open the file, hit a sync conflict, or read a support thread.
 
-Find them in Obsidian under **Settings → Community plugins → Labelled Links**.
+Find them in Obsidian under **Settings → Community plugins → `Labelled Links`**.
 
 ## General
 

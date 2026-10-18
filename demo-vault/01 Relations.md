@@ -1,6 +1,6 @@
 # Relations
 
-Labelled Links reads a relation out of the syntax you already write, so nothing needs setting up and a vault stays readable without the plugin. A link is a relation when it is the value of a property or of an inline field, and the property or field name is its label.
+`Labelled Links` reads a relation out of the syntax you already write, so nothing needs setting up and a vault stays readable without the plugin. A link is a relation when it is the value of a property or of an inline field, and the property or field name is its label.
 
 ## Properties
 
@@ -27,4 +27,4 @@ caption: Rebuild the relation index
 require('/demoSetup.ts').rebuildRelationIndex(app);
 ```
 
-Manual equivalent: open the Command Palette (`Ctrl+P` / `Cmd+P`) and run **Labelled Links: Rebuild relation index**.
+Manual equivalent: open the Command Palette (`Ctrl+P` / `Cmd+P`) and run **`Labelled Links`: Rebuild relation index**.
