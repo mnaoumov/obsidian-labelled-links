@@ -27,6 +27,7 @@ Every button in this vault also states its **manual equivalent**, so you learn t
 | [02 Settings](<./02 Settings.md>) | Every setting, by the key it is stored under in `data.json`. |
 | [03 Relations pane](<./03 Relations pane.md>) | The pane listing every relation of a note in both directions, plus its plain links and backlinks. |
 | [04 Link badges](<./04 Link badges.md>) | The label shown on the link itself, with the inverse in its tooltip. |
+| [05 For plugin developers](<./05 For plugin developers.md>) | The API other plugins query relations through, and the event saying when they changed. |
 
 ## Materials
 
