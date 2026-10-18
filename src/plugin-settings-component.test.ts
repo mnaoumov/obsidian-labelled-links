@@ -17,14 +17,36 @@ describe('PluginSettingsComponent', () => {
     const component = createComponent(undefined);
     await component.loadWithPromises();
     expect(component.settings).toBeInstanceOf(PluginSettings);
+    expect(component.settings.relationDefinitions).toStrictEqual(['parent <-> child', 'spouse <-> spouse', 'sibling <-> sibling']);
   });
 
   // This drives the component through the lifecycle Obsidian does: `load()` reads `data.json`, and a
   // Value the user saved there has to win over the class default.
   it('loads a saved setting from data.json over its default', async () => {
-    const component = createComponent({ textSetting: 'Saved text' });
+    const component = createComponent({ relationDefinitions: ['employee <-> employer'] });
     await component.loadWithPromises();
-    expect(component.settings.textSetting).toBe('Saved text');
+    expect(component.settings.relationDefinitions).toStrictEqual(['employee <-> employer']);
+  });
+
+  it('builds the relation registry from the current settings', async () => {
+    const component = createComponent({ relationDefinitions: ['employee <-> employer'] });
+    await component.loadWithPromises();
+    expect(component.createRelationRegistry().getInverseLabel('employer')).toBe('employee');
+  });
+
+  it('rejects a registry with a malformed or repeated line, naming each one', async () => {
+    const component = createComponent(undefined);
+    await component.loadWithPromises();
+    expect(await component.setProperty('relationDefinitions', ['employee <->', 'spouse', 'spouse'])).toBe(
+      '"employee <->" is not a definition. Write "label <-> inverse", "label <-> label" or a lone "label".\n'
+        + '"spouse" defines "spouse" again. Each label can be defined once.'
+    );
+  });
+
+  it('accepts a valid registry', async () => {
+    const component = createComponent(undefined);
+    await component.loadWithPromises();
+    expect(await component.setProperty('relationDefinitions', ['employee <-> employer'])).toBe('');
   });
 });
 
