@@ -27,6 +27,47 @@ const DEMO_VAULT_TEST_FILES = 'src/**/*.demo-vault.integration.test.ts';
 const DEMO_VAULT_TIMEOUT_IN_MILLISECONDS = 600_000;
 
 /**
+ * The screenshot-capture suites that write `images/screenshots/screenshot-*.png`.
+ *
+ * Named `*.desktop-capture.` / `*.android-capture.` rather than `*.desktop.` / `*.android.` so they match NONE of
+ * the standard project globs. That keeps them out of `npm run test:integration` entirely: capturing is an
+ * explicit operation (`npm run capture:screenshots`), and folding it into the standard projects would rewrite
+ * the PNGs on every run.
+ */
+const DESKTOP_CAPTURE_TEST_FILES = 'src/**/*.desktop-capture.integration.test.ts';
+const ANDROID_CAPTURE_TEST_FILES = 'src/**/*.android-capture.integration.test.ts';
+
+/**
+ * The capture projects' global setup, which opens a copy of the demo vault rather than an empty one.
+ */
+const SCREENSHOTS_GLOBAL_SETUP_FILE = './scripts/screenshots-global-setup.ts';
+
+/**
+ * The capture projects' setup files: that vault seeds the integration-test harness plugin, so every closure's `lib`
+ * carries the library, as in the desktop project.
+ */
+const CAPTURE_SETUP_FILES = [
+  'obsidian-integration-testing/vitest-setup',
+  '@mnaoumov/obsidian-dev-toolkit/integration-test-setup'
+];
+
+/**
+ * The AVD the mobile shots are taken on: 900x1600 at density 320, exactly the size the community directory asks
+ * for, so the capture needs no crop, no rescale and no letterbox. The shared `obsidian_test` AVD cannot produce
+ * it, and resizing that one at runtime recreates the activity and with it the WebView the Appium session is
+ * attached to.
+ */
+const SCREENSHOT_AVD_NAME = 'obsidian_screenshots';
+
+const APPIUM_URL = 'http://localhost:4723';
+
+/**
+ * This AVD is cold-booted and rarely used, so Obsidian's first layout on it is far slower than on the shared one,
+ * and the 90s default expires while it is still starting up.
+ */
+const LAYOUT_READY_TIMEOUT_IN_MILLISECONDS = 240_000;
+
+/**
  * Where every `.svelte` / `.vue` import in a unit test's module graph is sent. Compiling a single-file
  * component is the bundler's job, and the plugin that does it is a dependency only of the bundler that
  * was chosen — so a unit test that imports the plugin's own code would otherwise fail on a file vitest
@@ -63,6 +104,32 @@ export const config = defineObsidianPluginVitestConfig({
           // Plugin, and with the endpoint registered every closure's `lib` throws for want of it.
           setupFiles: ['obsidian-integration-testing/vitest-setup'],
           testTimeout: DEMO_VAULT_TIMEOUT_IN_MILLISECONDS
+        }
+      },
+      {
+        test: {
+          ...context.desktop,
+          globalSetup: [SCREENSHOTS_GLOBAL_SETUP_FILE],
+          include: [DESKTOP_CAPTURE_TEST_FILES],
+          name: 'capture-screenshots:desktop',
+          setupFiles: CAPTURE_SETUP_FILES
+        }
+      },
+      {
+        test: {
+          ...context.android,
+          environmentOptions: {
+            obsidianTransport: {
+              appiumUrl: APPIUM_URL,
+              avdName: SCREENSHOT_AVD_NAME,
+              layoutReadyTimeoutInMilliseconds: LAYOUT_READY_TIMEOUT_IN_MILLISECONDS,
+              type: 'obsidian-android-appium'
+            }
+          },
+          globalSetup: [SCREENSHOTS_GLOBAL_SETUP_FILE],
+          include: [ANDROID_CAPTURE_TEST_FILES],
+          name: 'capture-screenshots:android',
+          setupFiles: CAPTURE_SETUP_FILES
         }
       }
     ];
