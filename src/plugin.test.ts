@@ -1,3 +1,4 @@
+import type { PluginApiDeclaration } from '@mnaoumov/obsidian-lib/plugin/plugin-api';
 import type {
   App as AppOriginal,
   MarkdownPostProcessorContext,
@@ -19,6 +20,12 @@ import {
 
 import type { PluginSettingsComponent } from './plugin-settings-component.ts';
 
+import { LabelledLinksApiImpl } from './labelled-links-api-impl.ts';
+import {
+  PLUGIN_API_CONTRACT,
+  PLUGIN_API_VERSION,
+  RELATIONS_CHANGED_EVENT_NAME
+} from './labelled-links-api.ts';
 import { Plugin } from './plugin.ts';
 import { RelationIndexComponent } from './relation-index-component.ts';
 import {
@@ -28,6 +35,10 @@ import {
 
 interface AppGlobal {
   app: AppOriginal;
+}
+
+interface PluginApisReader {
+  getPluginApis: () => PluginApiDeclaration[];
 }
 
 interface PluginWithSettings {
@@ -108,5 +119,40 @@ describe('Plugin', () => {
       expect(setRegistrySpy.mock.calls.length).toBeGreaterThan(callCount);
     });
     expect(setRegistrySpy.mock.calls.at(-1)?.[0].getInverseLabel('employee')).toBe('employer');
+  });
+
+  it('declares no api before it has loaded, and the relations api once it has', async () => {
+    const plugin = new Plugin(app, manifest);
+    expect(castTo<PluginApisReader>(plugin).getPluginApis()).toEqual([]);
+    await plugin.onload();
+    const declarations = castTo<PluginApisReader>(plugin).getPluginApis();
+    expect(declarations).toHaveLength(1);
+    expect(declarations[0]?.api).toBeInstanceOf(LabelledLinksApiImpl);
+    expect(declarations[0]?.apiVersion).toBe(PLUGIN_API_VERSION);
+    expect(declarations[0]?.contract).toBe(PLUGIN_API_CONTRACT);
+  });
+
+  it('re-triggers the index changes on the workspace with a plain-data payload until it unloads', async () => {
+    const onSpy = vi.spyOn(RelationIndexComponent.prototype, 'on');
+    const offrefSpy = vi.spyOn(RelationIndexComponent.prototype, 'offref');
+    const triggerSpy = vi.spyOn(app.workspace, 'trigger');
+    const plugin = new Plugin(app, manifest);
+    plugin.load();
+    await vi.waitFor(() => {
+      expect(castTo<PluginApisReader>(plugin).getPluginApis()).toHaveLength(1);
+    });
+
+    const callbacks = onSpy.mock.calls.map(([, callback]) => callback);
+    for (const callback of callbacks) {
+      callback(['Alice.md']);
+    }
+    expect(triggerSpy).toHaveBeenCalledWith(RELATIONS_CHANGED_EVENT_NAME, { paths: ['Alice.md'] });
+    for (const callback of callbacks) {
+      callback(null);
+    }
+    expect(triggerSpy).toHaveBeenCalledWith(RELATIONS_CHANGED_EVENT_NAME, { paths: null });
+
+    plugin.unload();
+    expect(offrefSpy).toHaveBeenCalled();
   });
 });

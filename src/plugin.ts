@@ -1,3 +1,5 @@
+import type { PluginApiDeclaration } from '@mnaoumov/obsidian-lib/plugin/plugin-api';
+
 import { OpenDemoVaultCommandHandler } from '@mnaoumov/obsidian-lib/command-handlers/open-demo-vault-command-handler';
 import { PluginSettingsTabComponent } from '@mnaoumov/obsidian-lib/components/plugin-settings-tab-component';
 import { PluginDataHandler } from '@mnaoumov/obsidian-lib/data-handler';
@@ -11,6 +13,12 @@ import { PluginViewRegistrar } from '@mnaoumov/obsidian-lib/view-registrar';
 import { OpenRelationsPaneCommandHandler } from './command-handlers/open-relations-pane-command-handler.ts';
 import { RebuildRelationIndexCommandHandler } from './command-handlers/rebuild-relation-index-command-handler.ts';
 import { createLinkBadgeExtension } from './editor-extensions/link-badge-view-plugin.ts';
+import { LabelledLinksApiImpl } from './labelled-links-api-impl.ts';
+import {
+  PLUGIN_API_CONTRACT,
+  PLUGIN_API_VERSION,
+  RELATIONS_CHANGED_EVENT_NAME
+} from './labelled-links-api.ts';
 import { LinkBadgeReadingViewComponent } from './link-badge-reading-view-component.ts';
 import { PluginSettingsComponent } from './plugin-settings-component.ts';
 import { PluginSettingsTab } from './plugin-settings-tab.ts';
@@ -21,6 +29,29 @@ import {
 } from './views/relations-view.ts';
 
 export class Plugin extends PluginBase {
+  private labelledLinksApi: LabelledLinksApiImpl | null = null;
+
+  /**
+   * Declares the API for the base to publish, once `onloadImpl` has built it.
+   *
+   * Published by the base rather than by hand: the `plugin-loaded` broadcast's `apiVersions` is derived
+   * from this method alone, so a hand `publishPluginApi` call would announce this plugin as publishing no
+   * API at all.
+   *
+   * @returns The declaration, or none before the plugin has loaded.
+   */
+  protected override getPluginApis(): PluginApiDeclaration[] {
+    return this.labelledLinksApi
+      ? [
+        {
+          api: this.labelledLinksApi,
+          apiVersion: PLUGIN_API_VERSION,
+          contract: PLUGIN_API_CONTRACT
+        }
+      ]
+      : [];
+  }
+
   protected override async onloadImpl(): Promise<void> {
     const pluginSettingsComponent = this.addChild(
       new PluginSettingsComponent({
@@ -47,6 +78,16 @@ export class Plugin extends PluginBase {
     pluginSettingsComponent.on('loadSettings', updateRegistry);
     pluginSettingsComponent.on('saveSettings', updateRegistry);
     updateRegistry();
+
+    // Other plugins share no code with this one, so the index's own event is re-triggered on the workspace,
+    // With a plain-data payload, under the name `api.d.ts` publishes.
+    const relationsChangedEventRef = relationIndex.on('changed', (paths) => {
+      this.app.workspace.trigger(RELATIONS_CHANGED_EVENT_NAME, { paths: paths === null ? null : [...paths] });
+    });
+    this.register(() => {
+      relationIndex.offref(relationsChangedEventRef);
+    });
+    this.labelledLinksApi = new LabelledLinksApiImpl(relationIndex);
 
     new PluginEditorExtensionRegistrar(this).registerEditorExtension(createLinkBadgeExtension(relationIndex));
     const linkBadgeReadingViewComponent = this.addChild(new LinkBadgeReadingViewComponent({ app: this.app, relationIndex }));
