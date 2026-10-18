@@ -1,6 +1,6 @@
 {
   "name": "labelled-links",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "description": "Label your links: give each link a relation, show the inverse relation from the other end, and browse every relation of a note in one pane.",
   "type": "module",
   "main": "main.js",
