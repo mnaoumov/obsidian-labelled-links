@@ -76,6 +76,7 @@ describe('PluginSettingsTab', () => {
     const [setting] = renderRows(tab);
     const textArea = setting?.controlEl.querySelector('textarea');
     expect(textArea?.rows).toBe(8);
+    expect(textArea?.hasClass('labelled-links-registry')).toBe(true);
     expect(setting?.descEl.textContent).toContain('employee <-> employer');
   });
 });
