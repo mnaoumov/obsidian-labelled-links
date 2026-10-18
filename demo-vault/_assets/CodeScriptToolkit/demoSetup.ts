@@ -22,6 +22,21 @@ export function rebuildRelationIndex(app: App): void {
 }
 
 /**
+ * Opens a note and then the plugin's relations pane beside it, so the pane shows that note's relations.
+ *
+ * Manual equivalent: open the note, then run `Labelled Links: Open relations pane` in the Command Palette.
+ */
+export async function openRelationsPane(app: App, notePath: string): Promise<void> {
+  const file = app.vault.getFileByPath(notePath);
+  if (!file) {
+    new Notice(`${notePath} is missing from this vault.`);
+    return;
+  }
+  await app.workspace.getLeaf(false).openFile(file);
+  app.commands.executeCommandById(`${PLUGIN_ID}:open-relations-pane`);
+}
+
+/**
  * Sets the plugin's relation registry to the given definitions.
  *
  * `configureCommunityPlugin` routes through the plugin's own settings component while it is loaded, so the

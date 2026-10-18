@@ -25,6 +25,7 @@ Every button in this vault also states its **manual equivalent**, so you learn t
 | --- | --- |
 | [01 Relations](<./01 Relations.md>) | How a property or an inline field labels a link, and how the other end reads it. |
 | [02 Settings](<./02 Settings.md>) | Every setting, by the key it is stored under in `data.json`. |
+| [03 Relations pane](<./03 Relations pane.md>) | The pane listing every relation of a note in both directions, plus its plain links and backlinks. |
 
 ## Materials
 
