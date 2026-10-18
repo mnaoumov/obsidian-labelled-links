@@ -8,9 +8,51 @@
   /* Override library styles */
 }
 
-/* The word-count widget the sample editor extension renders. Styled here rather than through
-   `element.style`, so a theme can restyle it. */
-.cm-sample-word-count {
-  font-size: 0.85em;
-  opacity: 0.5;
+/* The relations pane. Theme variables only, so a theme restyles it like any core pane. */
+.labelled-links-relations-view .labelled-links-relations-title {
+  font-weight: var(--font-semibold);
+  margin-bottom: var(--size-4-2);
+}
+
+.labelled-links-relations-view .labelled-links-relations-section {
+  margin-bottom: var(--size-4-4);
+}
+
+.labelled-links-relations-view .labelled-links-relations-section-title {
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  font-weight: var(--font-semibold);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.labelled-links-relations-view .labelled-links-relations-group {
+  margin-top: var(--size-4-2);
+}
+
+.labelled-links-relations-view .labelled-links-relations-group-title {
+  color: var(--text-accent);
+  font-size: var(--font-ui-small);
+}
+
+.labelled-links-relations-view .labelled-links-relation {
+  padding: var(--size-2-1) 0 var(--size-2-1) var(--size-4-3);
+}
+
+.labelled-links-relations-view .labelled-links-relation-written-label {
+  color: var(--text-faint);
+  font-size: var(--font-ui-smaller);
+  margin-left: var(--size-4-2);
+}
+
+.labelled-links-relations-view .labelled-links-relation-snippet {
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.labelled-links-relations-view .labelled-links-relation-snippet:empty {
+  display: none;
 }
