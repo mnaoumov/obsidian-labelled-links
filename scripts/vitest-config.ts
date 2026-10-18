@@ -5,6 +5,12 @@ import { defineObsidianPluginVitestConfig } from '@mnaoumov/obsidian-dev-toolkit
 import { fileURLToPath } from 'node:url';
 
 /**
+ * The desktop, Android and performance projects' global setup: the harness's own, plus the integration-test
+ * harness plugin.
+ */
+const GLOBAL_SETUP_FILE = './scripts/vitest-global-setup.ts';
+
+/**
  * The demo-vault button suite. It drives a real desktop Obsidian like the desktop project, but opens a
  * copy of the in-repo `demo-vault/` rather than an empty vault — hence its own `globalSetup` — and needs
  * its own file suffix so the desktop project does not also collect it and open it against a vault with no
@@ -53,6 +59,9 @@ export const config = defineObsidianPluginVitestConfig({
           globalSetup: ['./scripts/demo-vault-global-setup.ts'],
           include: [DEMO_VAULT_TEST_FILES],
           name: 'integration-tests:demo-vault',
+          // Without the harness endpoint the desktop project carries: this vault does not seed the harness
+          // Plugin, and with the endpoint registered every closure's `lib` throws for want of it.
+          setupFiles: ['obsidian-integration-testing/vitest-setup'],
           testTimeout: DEMO_VAULT_TIMEOUT_IN_MILLISECONDS
         }
       }
@@ -62,6 +71,16 @@ export const config = defineObsidianPluginVitestConfig({
   // Pattern MATCHED, so `/\.svelte$/` rewrites the extension and leaves the rest of the specifier glued
   // To the front of the stub path. The pattern has to cover the whole id.
   editContext(context: ObsidianPluginVitestConfigContext): void {
+    // Every vault these projects open seeds the integration-test harness plugin, and the per-worker endpoint
+    // Is what merges its library into every closure's `lib`.
+    for (const project of [context.android, context.desktop, context.desktopPerformance]) {
+      project.globalSetup = [GLOBAL_SETUP_FILE];
+      project.setupFiles = [
+        'obsidian-integration-testing/vitest-setup',
+        '@mnaoumov/obsidian-dev-toolkit/integration-test-setup'
+      ];
+    }
+
     context.unitTests.alias = [
       { find: /^.+\.(?:svelte|vue)$/u, replacement: FRAMEWORK_COMPONENT_STUB_PATH },
       { find: /^.+\.(?:css|scss)$/u, replacement: STYLESHEET_STUB_PATH },

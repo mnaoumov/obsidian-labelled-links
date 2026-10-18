@@ -88,6 +88,13 @@ export const configs: Linter.Config[] = defineEslintConfigs({
     );
   },
   editContext(context) {
+    // The published API's two root files are this plugin's source as much as `src/` is: a consumer copies
+    // Them. Without this they match only the `**/*.d.ts` object below, which carries no parser, and ESLint
+    // Reads `api.d.ts` as JavaScript.
+    context.sourceFiles.push(
+      'api-contract.ts',
+      'api.d.ts'
+    );
     // The shared config's root-config list is the three a plugin built on the toolkit always has
     // (`commitlint.config.ts`, `eslint.config.mts`, `vitest.config.ts`). This project may also have a root
     // Wrapper for another runner, and a root `*.ts` that ESLint reaches but no config object matches is a
