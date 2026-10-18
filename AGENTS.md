@@ -22,7 +22,7 @@ It is meant to sit **alongside** `Breadcrumbs`, the incumbent typed-links plugin
 - `src/relation-extractor.ts` turns a note's cached metadata and text into its references, each with its label or `null`. The metadata cache does not record inline fields, so they are read from the text. Obsidian caches a property value holding several links (`"[[A]], [[B]]"`) as one link to `A]], [[B`, so such a key's cached entry is replaced by the links `parseFrontmatterLinks` finds in the value.
 - `src/relation-index-component.ts` keeps every note's references, resolved, in an outgoing and an incoming map. A metadata `changed` event patches one note. A vault `create`, `rename` or `delete` only marks the resolution stale, and the next query re-resolves from memory, so a folder rename does not re-resolve once per file. Incoming labels come from the registry at query time, so a registry change re-indexes nothing. Plain links and backlinks come from the same index with a `null` label, rather than from `getBacklinksForFileOrPath`, so a relation and a plain link to the same note always agree on how the link resolved.
 
-**No GitHub remote exists yet.** `mnaoumov/obsidian-labelled-links` has not been created, so nothing is pushed and nothing is released. The plugin id `labelled-links` was free in the community directory on 2026-10-17. An id can never change once it is published, so check it again right before the first submission.
+**Pushed, not released.** `main` is pushed to `mnaoumov/obsidian-labelled-links`, and no release has been cut. The plugin id `labelled-links` was free in the community directory on 2026-10-17. An id can never change once it is published, so check it again right before the first submission.
 
 ## Design
 
