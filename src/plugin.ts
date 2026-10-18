@@ -1,13 +1,17 @@
 import { OpenDemoVaultCommandHandler } from '@mnaoumov/obsidian-lib/command-handlers/open-demo-vault-command-handler';
 import { PluginSettingsTabComponent } from '@mnaoumov/obsidian-lib/components/plugin-settings-tab-component';
 import { PluginDataHandler } from '@mnaoumov/obsidian-lib/data-handler';
+import { PluginEditorExtensionRegistrar } from '@mnaoumov/obsidian-lib/editor-extension-registrar';
 import { PluginHoverLinkSourceRegistrar } from '@mnaoumov/obsidian-lib/hover-link-source-registrar';
+import { PluginMarkdownPostProcessorRegistrar } from '@mnaoumov/obsidian-lib/markdown-post-processor-registrar';
 import { PluginBase } from '@mnaoumov/obsidian-lib/plugin/plugin';
 import { PluginEventSourceImpl } from '@mnaoumov/obsidian-lib/plugin/plugin-event-source';
 import { PluginViewRegistrar } from '@mnaoumov/obsidian-lib/view-registrar';
 
 import { OpenRelationsPaneCommandHandler } from './command-handlers/open-relations-pane-command-handler.ts';
 import { RebuildRelationIndexCommandHandler } from './command-handlers/rebuild-relation-index-command-handler.ts';
+import { createLinkBadgeExtension } from './editor-extensions/link-badge-view-plugin.ts';
+import { LinkBadgeReadingViewComponent } from './link-badge-reading-view-component.ts';
 import { PluginSettingsComponent } from './plugin-settings-component.ts';
 import { PluginSettingsTab } from './plugin-settings-tab.ts';
 import { RelationIndexComponent } from './relation-index-component.ts';
@@ -43,6 +47,12 @@ export class Plugin extends PluginBase {
     pluginSettingsComponent.on('loadSettings', updateRegistry);
     pluginSettingsComponent.on('saveSettings', updateRegistry);
     updateRegistry();
+
+    new PluginEditorExtensionRegistrar(this).registerEditorExtension(createLinkBadgeExtension(relationIndex));
+    const linkBadgeReadingViewComponent = this.addChild(new LinkBadgeReadingViewComponent({ app: this.app, relationIndex }));
+    new PluginMarkdownPostProcessorRegistrar(this).registerMarkdownPostProcessor({
+      postProcessor: linkBadgeReadingViewComponent.postProcess.bind(linkBadgeReadingViewComponent)
+    });
 
     new PluginViewRegistrar(this).registerView({
       type: RELATIONS_VIEW_TYPE,

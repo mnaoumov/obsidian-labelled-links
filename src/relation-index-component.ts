@@ -169,6 +169,16 @@ export class RelationIndexComponent extends LayoutReadyComponent {
   }
 
   /**
+   * Gets the label a relation carries when it is seen from its target, from the current registry.
+   *
+   * @param label - The label written in the source note.
+   * @returns The inverse label, or `null` when the registry has none for it.
+   */
+  public getInverseLabel(label: string): null | string {
+    return this.registry.getInverseLabel(label);
+  }
+
+  /**
    * Gets the relations of a note.
    *
    * @param pathOrFile - The note, or the path an unresolved link names.

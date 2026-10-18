@@ -111,6 +111,12 @@ describe('RelationIndexComponent', () => {
     ]);
   });
 
+  it('answers the inverse of a label from the current registry', async () => {
+    const { index } = await createIndex();
+    expect(index.getInverseLabel('Employee')).toBe('employer');
+    expect(index.getInverseLabel('mentions')).toBeNull();
+  });
+
   it('labels incoming relations from the current registry without re-indexing', async () => {
     const { index } = await createIndex();
     index.setRegistry(new RelationRegistry(parseRelationDefinitions(['employee <-> boss']).definitions));
