@@ -10,12 +10,12 @@ Below this paragraph is a **code button** — a captioned rectangle. It is not a
 
 ```code-button
 ---
-caption: Run the Sample command
+caption: Rebuild the relation index
 ---
-require('/demoSetup.ts').runSampleCommand(app);
+require('/demoSetup.ts').rebuildRelationIndex(app);
 ```
 
-A notice should have appeared in the top-right corner. That is the plugin's `Sample` command running — the same thing you get from **Labelled Links: Sample** in the Command Palette (`Ctrl+P` / `Cmd+P`).
+A notice should have appeared in the top-right corner, saying how many relations the plugin found in this vault. That is the **Labelled Links: Rebuild relation index** command running, the same thing you get from the Command Palette (`Ctrl+P` / `Cmd+P`).
 
 Every button in this vault also states its **manual equivalent**, so you learn the real steps rather than depending on the buttons.
 
@@ -23,7 +23,7 @@ Every button in this vault also states its **manual equivalent**, so you learn t
 
 | Note | What it covers |
 | --- | --- |
-| [01 Sample commands](<./01 Sample commands.md>) | The commands the plugin adds, and how to run them. |
+| [01 Relations](<./01 Relations.md>) | How a property or an inline field labels a link, and how the other end reads it. |
 | [02 Settings](<./02 Settings.md>) | Every setting, by the key it is stored under in `data.json`. |
 
 ## Materials

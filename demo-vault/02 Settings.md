@@ -6,35 +6,29 @@ Find them in Obsidian under **Settings → Community plugins → Labelled Links*
 
 ## General
 
-- `textSetting`
-  - free text, shown in the settings tab as **Text setting name**. The scaffolded sample setting; nothing reads it yet.
+- `relationDefinitions`
+  - the relation registry, shown in the settings tab as **Relation registry**, one definition per line. `employee <-> employer` is a pair: a link labelled `employee` reads as `employer` from its target. `spouse <-> spouse` is a symmetric label. A lone `mentions` has no inverse, so it reads as itself from both ends, like every label the registry does not list. A malformed line, or one that defines a label a second time, is rejected with a message naming it. The default is `parent <-> child`, `spouse <-> spouse` and `sibling <-> sibling`.
 
 ## Try it
 
-Change the setting without leaving this note. The change applies live — the plugin's settings component picks it up, so there is no reload.
+Add a pair to the registry without leaving this note. The change applies live, so there is no reload, and the incoming relations are relabelled straight away without re-reading any note.
 
 ```code-button
 ---
-caption: Set textSetting to "changed by the demo"
+caption: Add "employee <-> employer" to the registry
 ---
-await require('/demoSetup.ts').setTextSetting(app, 'changed by the demo');
+await require('/demoSetup.ts').setRelationDefinitions(app, ['parent <-> child', 'spouse <-> spouse', 'sibling <-> sibling', 'employee <-> employer']);
 ```
 
-Manual equivalent: type the same value into **Text setting name** in the settings tab.
+Manual equivalent: add the line `employee <-> employer` to **Relation registry** in the settings tab.
 
-Open the settings tab now and the field shows the new value. When you are done, put it back:
+When you are done, put the default registry back:
 
 ```code-button
 ---
-caption: Reset textSetting to its default
+caption: Reset the registry to its default
 ---
-await require('/demoSetup.ts').resetTextSetting(app);
+await require('/demoSetup.ts').resetRelationDefinitions(app);
 ```
 
-Manual equivalent: type `defaultText` back into the field.
-
-## Adding your own
-
-Settings are declared as plain properties on the `PluginSettings` class in `src/plugin-settings.ts`; the property's initial value **is** its default. `src/plugin-settings-tab.ts` renders one row per setting, and `src/plugin-settings-component.ts` is where migrations and validators go.
-
-When you add one, add it to this note too. The demo-vault coverage suite can be told to fail the build when a setting is documented nowhere — see the commented reflection spec in `src/demo-vault.no-app.integration.test.ts`.
+Manual equivalent: delete the line you added.

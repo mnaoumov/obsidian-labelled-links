@@ -59,6 +59,7 @@
     "@mnaoumov/obsidian-lib": "^4.3.0",
     "@mnaoumov/typescript-dev-toolkit": "^3.6.4",
     "@mnaoumov/typescript-lib": "^1.5.0",
+    "@mnaoumov/typescript-test-toolkit": "^1.0.2",
     "@obsidian-typings/obsidian-public-latest": "^6.49.0",
     "@tsconfig/strictest": "^2.0.8",
     "@types/node": "^26.6.5",

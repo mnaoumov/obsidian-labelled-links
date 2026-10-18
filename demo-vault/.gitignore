@@ -9,7 +9,3 @@
 # `CodeScript Toolkit` also lands here the first time you open this vault in Obsidian, which is where the
 # Demo-vault button suite picks it up from.
 .obsidian/plugins/*
-
-# Written by the demo buttons in `01 Sample commands.md`; clicking through the walkthrough should not
-# Leave the repository dirty.
-Materials/01 Sample commands/Scratch note.md

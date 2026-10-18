@@ -37,11 +37,13 @@
     "lezer",
     "liberapay",
     "linkinator",
+    "linkpath",
     "lintstagedrc",
     "lucide",
     "markdownlint",
     "mnaoumov",
     "obsidianmd",
+    "offref",
     "onload",
     "onunload",
     "postcss",
@@ -63,6 +65,7 @@
     "wabt",
     "wasm",
     "wdio",
+    "wikilink",
     "wikilinks"
   ],
   "ignoreRegExpList": [
