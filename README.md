@@ -99,7 +99,7 @@ If you would rather not depend on [`@mnaoumov/obsidian-lib`](https://www.npmjs.c
 
 ## Installation
 
-The plugin is not yet listed in [the official Community Plugins repository](https://community.obsidian.md/plugins). Until it is, install it as a beta release.
+The plugin is available in [the official Community Plugins repository](https://community.obsidian.md/plugins/labelled-links).
 
 ### Beta versions
 
