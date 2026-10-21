@@ -4,7 +4,7 @@
 
 ## Properties
 
-Every link-valued property is a relation labelled with the property name, and a list property labels each of its links. [Alice](<./Materials/01 Relations/Alice.md>) has `child: "[[Bob]]"` in her properties, so the link from Alice to Bob is labelled `child`.
+Every link-valued property is a relation labelled with the property name, and a list property labels each of its links. [Alice](<./Materials/01 Relations/Alice.md>) has `child: "[Bob](<Bob.md>)"` in her properties, so the link from Alice to Bob is labelled `child`. A property takes a wikilink too, `child: "[[Bob]]"`, and Obsidian indexes either form as a link.
 
 ## Inline fields
 
@@ -23,7 +23,7 @@ Every form above puts the label in the text. To label a link in a sentence witho
 
 [Dan](<./Materials/01 Relations/Dan.md>) writes `[Erin](<Erin.md>)%%:child%%` in a sentence, so his link to [Erin](<./Materials/01 Relations/Erin.md>) is labelled `child`, and reads as `parent` from Erin's end.
 
-A property hides the label from the sentence too, by moving the link out of it: `child: "[[Erin]]"`.
+A property hides the label from the sentence too, by moving the link out of it: `child: "[Erin](<Erin.md>)"`.
 
 ## Inverse labels
 
