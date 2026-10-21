@@ -50,7 +50,7 @@ describe('getLinkBadge', () => {
     const [dan] = getPositionedRelations(index, 'Alice.md');
     expect(getLinkBadge(index, ensureNonNullable(dan))).toEqual({
       label: 'spouse',
-      tooltip: 'Alice --spouse--> Dan\nDan --spouse--> Alice'
+      tooltip: 'Dan is Alice\'s spouse\nAlice is Dan\'s spouse'
     });
   });
 
@@ -59,7 +59,7 @@ describe('getLinkBadge', () => {
     const ghost = getPositionedRelations(index, 'Alice.md')[2];
     expect(getLinkBadge(index, ensureNonNullable(ghost))).toEqual({
       label: 'mentor',
-      tooltip: 'Alice --mentor--> Ghost\nNo inverse label is registered for "mentor".'
+      tooltip: 'Ghost is Alice\'s mentor\nNo inverse label is registered for "mentor".'
     });
   });
 

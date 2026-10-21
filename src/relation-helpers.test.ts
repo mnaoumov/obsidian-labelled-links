@@ -7,10 +7,37 @@ import {
   it
 } from 'vitest';
 
+import { LabelForm } from './relation-extractor.ts';
 import {
+  formatRelationSentence,
+  formatWrittenRelation,
   getNoteName,
   isReferenceCache
 } from './relation-helpers.ts';
+
+describe('formatRelationSentence', () => {
+  it('names the target as the source\'s label', () => {
+    expect(formatRelationSentence({ label: 'child', sourceName: 'Alice', targetName: 'Bob' })).toBe('Bob is Alice\'s child');
+  });
+});
+
+describe('formatWrittenRelation', () => {
+  it.each([
+    [LabelForm.BracketedInlineField, 'Alice: [child:: [[Bob]]]'],
+    [LabelForm.Comment, 'Alice: [[Bob]]%%:child%%'],
+    [LabelForm.InlineField, 'Alice: child:: [[Bob]]'],
+    [LabelForm.ParenthesizedInlineField, 'Alice: (child:: [[Bob]])'],
+    [LabelForm.Property, 'Alice: child: "[[Bob]]"']
+  ])('spells a %s the way the source note writes it', (labelForm, expected) => {
+    expect(formatWrittenRelation({ label: 'child', labelForm, original: '[[Bob]]', sourceName: 'Alice' })).toBe(expected);
+  });
+
+  it('quotes a property value as YAML does', () => {
+    expect(formatWrittenRelation({ label: 'child', labelForm: LabelForm.Property, original: '[Bob "B"](<Bob.md>)', sourceName: 'Alice' })).toBe(
+      String.raw`Alice: child: "[Bob \"B\"](<Bob.md>)"`
+    );
+  });
+});
 
 describe('getNoteName', () => {
   it('drops the folder and the .md extension', () => {

@@ -8,7 +8,10 @@ import {
   it
 } from 'vitest';
 
-import { extractReferences } from './relation-extractor.ts';
+import {
+  extractReferences,
+  LabelForm
+} from './relation-extractor.ts';
 
 interface LabelledLink {
   readonly label: null | string;
@@ -26,6 +29,20 @@ function toLabelledLinks(cache: CachedMetadata, content: string): LabelledLink[]
 }
 
 describe('extractReferences', () => {
+  it('records how each label is written', () => {
+    const content = '---\nchild: "[[A]]"\n---\nchild:: [[B]]\n[child:: [[C]]] (child:: [[D]]) [[E]]%%:child%% [[F]]\n';
+    const app = App.createConfigured__({ files: { 'Note.md': content } });
+    const cache = ensureNonNullable(app.metadataCache.getCache('Note.md'));
+    expect(extractReferences({ cache, content }).map(({ labelForm, reference }) => [reference.link, labelForm])).toStrictEqual([
+      ['A', LabelForm.Property],
+      ['B', LabelForm.InlineField],
+      ['C', LabelForm.BracketedInlineField],
+      ['D', LabelForm.ParenthesizedInlineField],
+      ['E', LabelForm.Comment],
+      ['F', null]
+    ]);
+  });
+
   it('labels a link-valued property with its name', () => {
     expect(extract('---\nemployee: "[[Alice]]"\n---\n')).toStrictEqual([{ label: 'employee', link: 'Alice' }]);
   });

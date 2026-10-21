@@ -16,7 +16,10 @@ import {
 import { AsyncEvents } from '@mnaoumov/typescript-lib/async-events';
 import { getLinkpath } from 'obsidian';
 
-import type { ExtractedReference } from './relation-extractor.ts';
+import type {
+  ExtractedReference,
+  LabelForm
+} from './relation-extractor.ts';
 
 import { extractReferences } from './relation-extractor.ts';
 import {
@@ -59,6 +62,11 @@ export interface Relation {
    * has no inverse for it. `null` for a plain link or backlink.
    */
   readonly label: null | string;
+
+  /**
+   * How {@link Relation.linkLabel} is written in the source note, or `null` for a plain link.
+   */
+  readonly labelForm: LabelForm | null;
 
   /**
    * The label as written in the source note, or `null` for a plain link.
@@ -408,6 +416,7 @@ export class RelationIndexComponent extends LayoutReadyComponent {
       direction,
       isTargetResolved: reference.isTargetResolved,
       label,
+      labelForm: reference.labelForm,
       linkLabel,
       reference: reference.reference,
       sourcePath: reference.sourcePath,

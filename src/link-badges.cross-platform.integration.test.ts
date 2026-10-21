@@ -25,8 +25,8 @@ interface BadgeSnapshot {
 // The plain link to Carol and the `child` property get no badge: a plain link has no label, and a property
 // Already shows its label as the property name beside the link.
 const EXPECTED_BADGES: BadgeSnapshot[] = [
-  { label: 'spouse', linkText: 'LB Dan', tooltip: 'LB Alice --spouse--> LB Dan\nLB Dan --spouse--> LB Alice' },
-  { label: 'mentor', linkText: 'LB Carol', tooltip: 'LB Alice --mentor--> LB Carol\nNo inverse label is registered for "mentor".' }
+  { label: 'spouse', linkText: 'LB Dan', tooltip: 'LB Dan is LB Alice\'s spouse\nLB Alice is LB Dan\'s spouse' },
+  { label: 'mentor', linkText: 'LB Carol', tooltip: 'LB Carol is LB Alice\'s mentor\nNo inverse label is registered for "mentor".' }
 ];
 
 describe('Link badges', () => {

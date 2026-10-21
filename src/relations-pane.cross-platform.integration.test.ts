@@ -30,8 +30,9 @@ interface PaneGroup {
 
 interface PaneRow {
   readonly link: string;
+  readonly sentence: string;
   readonly snippet: string;
-  readonly writtenLabel: string;
+  readonly written: string;
 }
 
 interface PaneSection {
@@ -65,8 +66,9 @@ describe('Relations pane', () => {
                 label: groupEl.querySelector('.labelled-links-relations-group-title')?.textContent ?? '',
                 rows: [...groupEl.querySelectorAll('.labelled-links-relation')].map((rowEl) => ({
                   link: rowEl.querySelector('.labelled-links-relation-link')?.textContent ?? '',
+                  sentence: rowEl.querySelector('.labelled-links-relation-sentence')?.textContent ?? '',
                   snippet: rowEl.querySelector('.labelled-links-relation-snippet')?.textContent ?? '',
-                  writtenLabel: rowEl.querySelector('.labelled-links-relation-written-label')?.textContent ?? ''
+                  written: rowEl.querySelector('.labelled-links-relation-sentence')?.getAttribute('aria-label') ?? ''
                 }))
               })),
               title: sectionEl.querySelector('.labelled-links-relations-section-title')?.textContent ?? ''
@@ -93,11 +95,11 @@ describe('Relations pane', () => {
 
     expect(sections).toEqual([
       {
-        groups: [{ label: 'parent', rows: [{ link: 'RP Alice', snippet: '', writtenLabel: 'RP Alice --child--> RP Bob' }] }],
+        groups: [{ label: 'parent', rows: [{ link: 'RP Alice', sentence: 'RP Bob is RP Alice\'s child', snippet: '', written: 'RP Alice: child: "[[RP Bob]]"' }] }],
         title: 'Incoming'
       },
       {
-        groups: [{ label: 'Links', rows: [{ link: 'RP Carol', snippet: 'Works with [[RP Carol]] on Fridays.', writtenLabel: '' }] }],
+        groups: [{ label: 'Links', rows: [{ link: 'RP Carol', sentence: '', snippet: 'Works with [[RP Carol]] on Fridays.', written: '' }] }],
         title: 'Unlabelled'
       }
     ]);

@@ -8,6 +8,7 @@ import {
   convertAsyncToSync,
   invokeAsyncSafely
 } from '@mnaoumov/typescript-lib/async';
+import { ensureNonNullable } from '@mnaoumov/typescript-lib/type-guards';
 import {
   ItemView,
   Keymap,
@@ -20,6 +21,8 @@ import type {
 } from '../relation-index-component.ts';
 
 import {
+  formatRelationSentence,
+  formatWrittenRelation,
   getNoteName,
   isReferenceCache
 } from '../relation-helpers.ts';
@@ -48,7 +51,6 @@ interface RelationsViewConstructorParams {
 interface RelationsViewRenderRowParams {
   readonly containerEl: HTMLElement;
   readonly file: TFile;
-  readonly groupLabel: string;
   readonly relation: Relation;
 }
 
@@ -63,7 +65,8 @@ interface RelationsViewRenderSectionParams {
  * The relations pane: every relation of the active note, outgoing and incoming, grouped by label, plus its
  * plain links and backlinks with the line each one sits on.
  *
- * An incoming relation is listed under its inverse label, the label it carries as seen from the active note.
+ * An incoming relation is listed under its inverse label, the label it carries as seen from the active note, with
+ * a sentence naming both ends (`Bob is Alice's child`) and, in its tooltip, the link as its source writes it.
  * The pane follows the active note and redraws whenever the index reports a change that touches it.
  */
 export class RelationsView extends ItemView {
@@ -190,7 +193,7 @@ export class RelationsView extends ItemView {
   }
 
   private renderRow(params: RelationsViewRenderRowParams): HTMLElement {
-    const { containerEl, file, groupLabel, relation } = params;
+    const { containerEl, file, relation } = params;
     const otherPath = relation.direction === RelationDirection.Outgoing ? relation.targetPath : relation.sourcePath;
     const isResolved = relation.direction === RelationDirection.Incoming || relation.isTargetResolved;
 
@@ -215,16 +218,18 @@ export class RelationsView extends ItemView {
       });
     });
 
-    if (relation.direction === RelationDirection.Incoming && relation.linkLabel !== null && relation.linkLabel !== relation.label) {
+    // An incoming label describes the active note, not the row's: Alice's `child:: [[Bob]]` makes Bob the child.
+    // The group title alone does not say which end it describes, so the row spells it out.
+    if (relation.direction === RelationDirection.Incoming && relation.labelForm !== null) {
+      const label = ensureNonNullable(relation.linkLabel);
       const sourceName = getNoteName(relation.sourcePath);
-      const targetName = getNoteName(file.path);
-      const writtenEl = rowEl.createSpan({
-        cls: 'labelled-links-relation-written-label',
-        text: `${sourceName} --${relation.linkLabel}--> ${targetName}`
+      const sentenceEl = rowEl.createSpan({
+        cls: 'labelled-links-relation-sentence',
+        text: formatRelationSentence({ label, sourceName, targetName: getNoteName(file.path) })
       });
-      const tooltip = `${sourceName} links to ${targetName} with the label "${relation.linkLabel}", read from this end as "${groupLabel}".`;
-      writtenEl.setAttribute('aria-label', tooltip);
-      setTooltip(writtenEl, tooltip);
+      const tooltip = formatWrittenRelation({ label, labelForm: relation.labelForm, original: relation.reference.original, sourceName });
+      sentenceEl.setAttribute('aria-label', tooltip);
+      setTooltip(sentenceEl, tooltip);
     }
 
     return rowEl;
@@ -245,7 +250,7 @@ export class RelationsView extends ItemView {
       groupEl.dataset['label'] = group.label;
       groupEl.createDiv({ cls: 'labelled-links-relations-group-title', text: group.label });
       for (const relation of group.relations) {
-        const rowEl = this.renderRow({ containerEl: groupEl, file, groupLabel: group.label, relation });
+        const rowEl = this.renderRow({ containerEl: groupEl, file, relation });
         if (relation.label === null) {
           snippetEls.set(relation, rowEl.createDiv({ cls: 'labelled-links-relation-snippet' }));
         }

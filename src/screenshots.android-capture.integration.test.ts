@@ -65,7 +65,7 @@ const SETTLE_DELAY_IN_MILLISECONDS = 1500;
 const PLUGIN_ID = 'labelled-links';
 const ALICE_PATH = 'Materials/01 Relations/Alice.md';
 const BOB_PATH = 'Materials/01 Relations/Bob.md';
-const SPOUSE_TOOLTIP = 'Alice --spouse--> Dan\nDan --spouse--> Alice';
+const SPOUSE_TOOLTIP = 'Dan is Alice\'s spouse\nAlice is Dan\'s spouse';
 
 /*
  * The registry shot adds the pair `02 Settings` adds with its button. The default registry alone is not a value:

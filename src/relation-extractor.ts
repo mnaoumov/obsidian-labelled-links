@@ -8,6 +8,36 @@ import { parseFrontmatterLinks } from '@mnaoumov/obsidian-lib/parse-link';
 import { getMandatoryNamedGroup } from '@mnaoumov/typescript-lib/reg-exp';
 
 /**
+ * How a label is written in its source note.
+ */
+export enum LabelForm {
+  /**
+   * An inline field in square brackets: `[child:: [[B]]]`.
+   */
+  BracketedInlineField = 'bracketed-inline-field',
+
+  /**
+   * A hidden label in a comment right after the link: `[[B]]%%:child%%`.
+   */
+  Comment = 'comment',
+
+  /**
+   * An inline field taking the rest of its line: `child:: [[B]]`.
+   */
+  InlineField = 'inline-field',
+
+  /**
+   * An inline field in parentheses: `(child:: [[B]])`.
+   */
+  ParenthesizedInlineField = 'parenthesized-inline-field',
+
+  /**
+   * A property: `child: "[[B]]"`.
+   */
+  Property = 'property'
+}
+
+/**
  * A reference found in a note, with the label it carries.
  */
 export interface ExtractedReference {
@@ -15,6 +45,11 @@ export interface ExtractedReference {
    * The property or inline-field key the reference is the value of, or `null` for a plain link.
    */
   readonly label: null | string;
+
+  /**
+   * How {@link ExtractedReference.label} is written, or `null` for a plain link.
+   */
+  readonly labelForm: LabelForm | null;
 
   /**
    * The reference as Obsidian caches it.
@@ -42,6 +77,7 @@ export interface ExtractReferencesParams {
  * The span of an inline field's value on one line, in UTF-16 columns.
  */
 interface InlineField {
+  readonly form: LabelForm;
   readonly label: string;
   readonly valueEnd: number;
   readonly valueStart: number;
@@ -86,6 +122,11 @@ const CLOSING_BRACKETS = new Map([
   ['[', ']']
 ]);
 
+const BRACKETED_FIELD_FORMS = new Map([
+  ['(', LabelForm.ParenthesizedInlineField],
+  ['[', LabelForm.BracketedInlineField]
+]);
+
 interface FindClosingBracketParams {
   readonly closingBracket: string;
   readonly line: string;
@@ -118,12 +159,12 @@ export function extractReferences(params: ExtractReferencesParams): ExtractedRef
 
   for (const reference of cache.frontmatterLinks ?? []) {
     if (!multiValueKeys.has(reference.key)) {
-      references.push({ label: getPropertyLabel(reference.key), reference });
+      references.push({ label: getPropertyLabel(reference.key), labelForm: LabelForm.Property, reference });
     }
   }
 
   for (const reference of multiValueReferences) {
-    references.push({ label: getPropertyLabel(reference.key), reference });
+    references.push({ label: getPropertyLabel(reference.key), labelForm: LabelForm.Property, reference });
   }
 
   const bodyReferences = [...cache.links ?? [], ...cache.embeds ?? []].sort(compareByOffset);
@@ -142,7 +183,13 @@ export function extractReferences(params: ExtractReferencesParams): ExtractedRef
       fieldsByLine.set(lineIndex, fields);
     }
 
-    references.push({ label: findCommentLabel(lines, reference) ?? findLabel(fields, reference), reference });
+    const commentLabel = findCommentLabel(lines, reference);
+    const field = findField(fields, reference);
+    references.push({
+      label: commentLabel ?? field?.label ?? null,
+      labelForm: commentLabel === null ? field?.form ?? null : LabelForm.Comment,
+      reference
+    });
   }
 
   return references;
@@ -158,7 +205,8 @@ function findBracketedFields(line: string): InlineField[] {
   for (let index = 0; index < line.length; index++) {
     const openingBracket = line.charAt(index);
     const closingBracket = CLOSING_BRACKETS.get(openingBracket);
-    if (closingBracket === undefined) {
+    const form = BRACKETED_FIELD_FORMS.get(openingBracket);
+    if (closingBracket === undefined || form === undefined) {
       continue;
     }
 
@@ -173,7 +221,7 @@ function findBracketedFields(line: string): InlineField[] {
       continue;
     }
 
-    fields.push({ label: getMandatoryNamedGroup(match, 'key').trim(), valueEnd, valueStart });
+    fields.push({ form, label: getMandatoryNamedGroup(match, 'key').trim(), valueEnd, valueStart });
     index = valueEnd;
   }
 
@@ -205,6 +253,12 @@ function findCommentLabel(lines: readonly string[], reference: ReferenceCache): 
   return match ? getMandatoryNamedGroup(match, 'key').trim() : null;
 }
 
+function findField(fields: readonly InlineField[], reference: ReferenceCache): InlineField | undefined {
+  const { end, start } = reference.position;
+  const isSingleLine = start.line === end.line;
+  return fields.find((candidate) => candidate.valueStart <= start.col && (isSingleLine ? end.col : start.col) <= candidate.valueEnd);
+}
+
 /**
  * Finds the inline fields on one line of a note.
  *
@@ -216,17 +270,10 @@ function findInlineFields(line: string): InlineField[] {
 
   const match = FULL_LINE_FIELD_REG_EXP.exec(line);
   if (match) {
-    fields.push({ label: getMandatoryNamedGroup(match, 'key').trim(), valueEnd: line.length, valueStart: match[0].length });
+    fields.push({ form: LabelForm.InlineField, label: getMandatoryNamedGroup(match, 'key').trim(), valueEnd: line.length, valueStart: match[0].length });
   }
 
   return fields;
-}
-
-function findLabel(fields: readonly InlineField[], reference: ReferenceCache): null | string {
-  const { end, start } = reference.position;
-  const isSingleLine = start.line === end.line;
-  const field = fields.find((candidate) => candidate.valueStart <= start.col && (isSingleLine ? end.col : start.col) <= candidate.valueEnd);
-  return field?.label ?? null;
 }
 
 /**

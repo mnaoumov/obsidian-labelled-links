@@ -138,12 +138,12 @@ describe('desktop store screenshots', () => {
   });
 
   it('3 - a badge and its tooltip in Reading view', { timeout: TEST_TIMEOUT_IN_MILLISECONDS }, async () => {
-    expect(await stageBadgeTooltip('reading')).toBe('Alice --spouse--> Dan\nDan --spouse--> Alice');
+    expect(await stageBadgeTooltip('reading')).toBe('Dan is Alice\'s spouse\nAlice is Dan\'s spouse');
     await shoot(3, 'The label sits on the link, and its tooltip reads both ways');
   });
 
   it('4 - the same badge in Live Preview', { timeout: TEST_TIMEOUT_IN_MILLISECONDS }, async () => {
-    expect(await stageBadgeTooltip('live-preview')).toBe('Alice --spouse--> Dan\nDan --spouse--> Alice');
+    expect(await stageBadgeTooltip('live-preview')).toBe('Dan is Alice\'s spouse\nAlice is Dan\'s spouse');
     await shoot(4, 'The same badge while you edit, in Live Preview');
   });
 
