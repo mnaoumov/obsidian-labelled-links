@@ -10,7 +10,8 @@ import {
 } from '@mnaoumov/typescript-lib/async';
 import {
   ItemView,
-  Keymap
+  Keymap,
+  setTooltip
 } from 'obsidian';
 
 import type {
@@ -47,6 +48,7 @@ interface RelationsViewConstructorParams {
 interface RelationsViewRenderRowParams {
   readonly containerEl: HTMLElement;
   readonly file: TFile;
+  readonly groupLabel: string;
   readonly relation: Relation;
 }
 
@@ -188,7 +190,7 @@ export class RelationsView extends ItemView {
   }
 
   private renderRow(params: RelationsViewRenderRowParams): HTMLElement {
-    const { containerEl, file, relation } = params;
+    const { containerEl, file, groupLabel, relation } = params;
     const otherPath = relation.direction === RelationDirection.Outgoing ? relation.targetPath : relation.sourcePath;
     const isResolved = relation.direction === RelationDirection.Incoming || relation.isTargetResolved;
 
@@ -214,7 +216,15 @@ export class RelationsView extends ItemView {
     });
 
     if (relation.direction === RelationDirection.Incoming && relation.linkLabel !== null && relation.linkLabel !== relation.label) {
-      rowEl.createSpan({ cls: 'labelled-links-relation-written-label', text: `written as ${relation.linkLabel}` });
+      const sourceName = getNoteName(relation.sourcePath);
+      const targetName = getNoteName(file.path);
+      const writtenEl = rowEl.createSpan({
+        cls: 'labelled-links-relation-written-label',
+        text: `${sourceName} --${relation.linkLabel}--> ${targetName}`
+      });
+      const tooltip = `${sourceName} links to ${targetName} with the label "${relation.linkLabel}", read from this end as "${groupLabel}".`;
+      writtenEl.setAttribute('aria-label', tooltip);
+      setTooltip(writtenEl, tooltip);
     }
 
     return rowEl;
@@ -235,7 +245,7 @@ export class RelationsView extends ItemView {
       groupEl.dataset['label'] = group.label;
       groupEl.createDiv({ cls: 'labelled-links-relations-group-title', text: group.label });
       for (const relation of group.relations) {
-        const rowEl = this.renderRow({ containerEl: groupEl, file, relation });
+        const rowEl = this.renderRow({ containerEl: groupEl, file, groupLabel: group.label, relation });
         if (relation.label === null) {
           snippetEls.set(relation, rowEl.createDiv({ cls: 'labelled-links-relation-snippet' }));
         }

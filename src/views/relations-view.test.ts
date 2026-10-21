@@ -157,8 +157,11 @@ describe('RelationsView', () => {
     await view.setFile(getFile(app, 'Bob.md'));
     expect(readPane(view)).toStrictEqual([
       { groups: [{ label: 'mentions', rows: ['Alice'] }], title: 'Outgoing' },
-      { groups: [{ label: 'employer', rows: ['Alice | written as Employee'] }], title: 'Incoming' }
+      { groups: [{ label: 'employer', rows: ['Alice | Alice --Employee--> Bob'] }], title: 'Incoming' }
     ]);
+    expect(view.contentEl.querySelector('.labelled-links-relation-written-label')?.getAttribute('aria-label')).toBe(
+      'Alice links to Bob with the label "Employee", read from this end as "employer".'
+    );
   });
 
   it('keeps the extension of a target that is not a note', async () => {
