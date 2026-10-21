@@ -17,6 +17,24 @@ A field written that way takes its whole line. To put one in the middle of a sen
 
 Open either note with the relations pane showing, and the other one is listed under `sibling` twice: once as the outgoing relation the note writes, and once as the incoming relation the other note writes, which reads as `sibling` from this end because `sibling` is its own inverse.
 
+Inline fields are not an Obsidian feature. The syntax comes from the `Dataview` plugin, and `Datacore`, a newer query plugin by the same author, reads all three forms too. Without one of them installed, this markup adds nothing beyond the relation `Labelled Links` reads from it: Obsidian shows it as typed text, and nothing else in the vault reads it. With `Dataview` or `Datacore`, the same fields also become metadata you can query. `Datacore` indexes them unless you turn off its **Inline fields** setting, and leaves them looking as you typed them.
+
+```code-button
+---
+caption: Install Dataview
+---
+await require('/demoSetup.ts').installDataview(app);
+```
+
+```code-button
+---
+caption: Install Datacore
+---
+await require('/demoSetup.ts').installDatacore(app);
+```
+
+Manual equivalent: open **Settings → Community plugins → Browse**, search for **`Dataview`** or **`Datacore`**, then install and enable it.
+
 ## Hidden labels
 
 Every form above puts the label in the text. To label a link in a sentence without the label showing, put a comment holding `:` and the label right after the link: `[[Erin]]%%:child%%`, or `[Erin](<Erin.md>)%%:child%%`. Reading view does not render a comment, so the sentence reads as if the link were plain, and the link badge is the only visible trace of the label. The link itself stays outside the comment, because Obsidian does not index a link inside one: it keeps its backlink, its graph edge and its rename updates. The `:` tells a label from an ordinary comment, so `[[Erin]]%%check this%%` labels nothing. Spaces are allowed between the link and the comment and inside the comment, and a hidden label wins over an inline field the link sits in.
