@@ -8,6 +8,7 @@ import type {
 } from './relation-index-component.ts';
 
 import {
+  formatRelationSentence,
   getNoteName,
   isReferenceCache
 } from './relation-helpers.ts';
@@ -19,7 +20,8 @@ import { RelationDirection } from './relation-index-component.ts';
 export const LINK_BADGE_CLASS = 'labelled-links-badge';
 
 /**
- * What a link badge shows: the label on the badge, and the relation and its inverse in its tooltip.
+ * What a link badge shows: the label on the badge, and the relation and its inverse in its tooltip, each as a
+ * sentence naming both ends (`Bob is Alice's child`).
  */
 export interface LinkBadge {
   /**
@@ -71,9 +73,9 @@ export function getLinkBadge(relationIndex: RelationIndexComponent, relation: Re
   const inverseLabel = relationIndex.getInverseLabel(label);
   const inverseLine = inverseLabel === null
     ? `No inverse label is registered for "${label}".`
-    : `${targetName} --${inverseLabel}--> ${sourceName}`;
+    : formatRelationSentence({ label: inverseLabel, sourceName: targetName, targetName: sourceName });
 
-  return { label, tooltip: `${sourceName} --${label}--> ${targetName}\n${inverseLine}` };
+  return { label, tooltip: `${formatRelationSentence({ label, sourceName, targetName })}\n${inverseLine}` };
 }
 
 /**

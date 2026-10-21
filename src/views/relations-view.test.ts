@@ -74,6 +74,7 @@ function createRelation(reference: Reference, sourcePath: string): Relation {
     direction: RelationDirection.Incoming,
     isTargetResolved: true,
     label: null,
+    labelForm: null,
     linkLabel: null,
     reference,
     sourcePath,
@@ -135,8 +136,8 @@ describe('RelationsView', () => {
       },
       {
         groups: [
-          { label: 'mentions', rows: ['Bob'] },
-          { label: 'spouse', rows: ['Carol'] }
+          { label: 'mentions', rows: ['Bob | Alice is Bob\'s mentions'] },
+          { label: 'spouse', rows: ['Carol | Alice is Carol\'s spouse'] }
         ],
         title: 'Incoming'
       },
@@ -152,16 +153,14 @@ describe('RelationsView', () => {
     expect(unresolvedEl?.textContent).toBe('Nobody');
   });
 
-  it('shows the label an incoming relation is written with when it differs from its inverse', async () => {
+  it('says which end an incoming label describes, with the link as its source writes it in the tooltip', async () => {
     const { app, view } = await createFixture();
     await view.setFile(getFile(app, 'Bob.md'));
     expect(readPane(view)).toStrictEqual([
       { groups: [{ label: 'mentions', rows: ['Alice'] }], title: 'Outgoing' },
-      { groups: [{ label: 'employer', rows: ['Alice | Alice --Employee--> Bob'] }], title: 'Incoming' }
+      { groups: [{ label: 'employer', rows: ['Alice | Bob is Alice\'s Employee'] }], title: 'Incoming' }
     ]);
-    expect(view.contentEl.querySelector('.labelled-links-relation-written-label')?.getAttribute('aria-label')).toBe(
-      'Alice links to Bob with the label "Employee", read from this end as "employer".'
-    );
+    expect(view.contentEl.querySelector('.labelled-links-relation-sentence')?.getAttribute('aria-label')).toBe('Alice: Employee: "[[Bob]]"');
   });
 
   it('keeps the extension of a target that is not a note', async () => {
@@ -238,7 +237,7 @@ describe('RelationsView', () => {
     await vi.waitFor(() => {
       expect(refresh).toHaveBeenCalledTimes(1);
     });
-    expect(readPane(view)).toStrictEqual([{ groups: [{ label: 'employee', rows: ['Alice'] }], title: 'Incoming' }]);
+    expect(readPane(view)).toStrictEqual([{ groups: [{ label: 'employee', rows: ['Alice | Dan is Alice\'s employee'] }], title: 'Incoming' }]);
 
     // Eve's links touch Eve and Alice only, so the pane showing Dan ignores them; Dan's own change does not.
     triggerMetadataChanged(app, 'Eve.md');

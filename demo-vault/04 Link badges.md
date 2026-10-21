@@ -1,6 +1,6 @@
 # Link badges
 
-A labelled link carries its label on the link itself: a small badge right after it, in Live Preview and in Reading view. Hover over the badge and a tooltip names the relation in both directions, so you see how the other note reads the same link without opening it.
+A labelled link carries its label on the link itself: a small badge right after it, in Live Preview and in Reading view. Hover over the badge and a tooltip names the relation in both directions, as a sentence saying which note is which, so you see how the other note reads the same link without opening it.
 
 ## See a badge in Reading view
 
@@ -15,10 +15,10 @@ Manual equivalent: open [Alice](<./Materials/01 Relations/Alice.md>), then pick 
 
 Alice's `spouse:: Dan` line now shows a `spouse` badge after the link to Dan. Hover over it and the tooltip reads:
 
-- `Alice --spouse--> Dan`
-- `Dan --spouse--> Alice`
+- `Dan is Alice's spouse`
+- `Alice is Dan's spouse`
 
-The second line is the inverse, read from the registry in [02 Settings](<./02 Settings.md>). `spouse` is its own inverse, so both lines carry the same label.
+The second line is the inverse, read from the registry in [02 Settings](<./02 Settings.md>). `spouse` is its own inverse, so both lines carry the same label, each naming the other note as the spouse.
 
 ## See it in Live Preview
 
@@ -57,7 +57,7 @@ Manual equivalent: open [Carol](<./Materials/01 Relations/Carol.md>) and switch 
 
 The link to Alice shows a `mentor` badge, and its tooltip reads:
 
-- `Carol --mentor--> Alice`
+- `Alice is Carol's mentor`
 - `No inverse label is registered for "mentor".`
 
 The registry in [02 Settings](<./02 Settings.md>) does not list `mentor`, so there is no second label to show. Alice's end of the link reads as `mentor` in the relations pane.

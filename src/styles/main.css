@@ -39,7 +39,7 @@
   padding: var(--size-2-1) 0 var(--size-2-1) var(--size-4-3);
 }
 
-.labelled-links-relations-view .labelled-links-relation-written-label {
+.labelled-links-relations-view .labelled-links-relation-sentence {
   color: var(--text-faint);
   font-size: var(--font-ui-smaller);
   margin-left: var(--size-4-2);

@@ -94,7 +94,7 @@ const DAN_LINK_END = ALICE_CONTENT.indexOf('[[Dan]]') + '[[Dan]]'.length;
 describe('createLinkBadgeExtension', () => {
   it('puts a badge after each labelled link in Live Preview', async () => {
     const { view } = await createView();
-    expect(readBadges(view)).toEqual([`${String(DAN_LINK_END)} Alice --spouse--> Dan\nDan --spouse--> Alice`]);
+    expect(readBadges(view)).toEqual([`${String(DAN_LINK_END)} Dan is Alice's spouse\nAlice is Dan's spouse`]);
     expect(view.contentDOM.querySelector('.labelled-links-badge')?.textContent).toBe('spouse');
   });
 
@@ -115,7 +115,7 @@ describe('createLinkBadgeExtension', () => {
   it('moves the badges with the text while the cache catches up', async () => {
     const { view } = await createView();
     view.dispatch({ changes: { from: 0, insert: 'xx' } });
-    expect(readBadges(view)).toEqual([`${String(DAN_LINK_END + 2)} Alice --spouse--> Dan\nDan --spouse--> Alice`]);
+    expect(readBadges(view)).toEqual([`${String(DAN_LINK_END + 2)} Dan is Alice's spouse\nAlice is Dan's spouse`]);
   });
 
   it('keeps the badges when only the selection moves', async () => {
@@ -129,7 +129,7 @@ describe('createLinkBadgeExtension', () => {
     const { index, view } = await createView();
     index.setRegistry(new RelationRegistry([]));
     await vi.waitFor(() => {
-      expect(readBadges(view)).toEqual([`${String(DAN_LINK_END)} Alice --spouse--> Dan\nNo inverse label is registered for "spouse".`]);
+      expect(readBadges(view)).toEqual([`${String(DAN_LINK_END)} Dan is Alice's spouse\nNo inverse label is registered for "spouse".`]);
     });
   });
 
