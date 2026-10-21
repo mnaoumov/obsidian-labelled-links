@@ -7,7 +7,13 @@
     "stdout to `expect`. Equal means the pin is still required; different means the condition that justified it",
     "has changed and the pin should be re-examined. `check: null` means no mechanical test exists - follow",
     "`manualCheck` instead. Every exact pin belongs here, and every entry must name a package that is actually",
-    "present in the declared section."
+    "present in the declared section.",
+    "",
+    "Known and NOT overridden (2026-10-21): GHSA-vfj7-8cjw-p6xm, braces stack exhaustion on deeply nested patterns. It",
+    "affects every braces release (<= 3.0.3, no patched version), reached only through markdownlint-cli2 -> micromatch",
+    "and globby -> fast-glob, and `npm audit fix --force` would only downgrade markdownlint-cli2 to 0.21.0. Exposure:",
+    "braces only expands the glob patterns this repo's own lint:md script and config hand it, never untrusted input,",
+    "and it never ships. Add a braces override once a patched release exists."
   ],
   "pins": {
     "@codemirror/state": {
@@ -42,12 +48,19 @@
       "section": "overrides",
       "why": "Clears GHSA-ggr8-5vv4-36mx (stack exhaustion merging recursive object graphs), patched in 8.0.0. @wdio/utils declares ^7.0.3 up to 9.30, and obsidian-integration-testing pins webdriverio 9.27.0, so no direct bump reaches it and `npm audit fix --force` only offers a downgrade of obsidian-integration-testing to 1.1.2. The forced major is safe for these consumers: 8.0.0 breaks by renaming the mergeInfo system and aligning the customization shorthand, and both surfaces were measured to behave identically on 7.1.6 and 8.0.1 in the exact shapes the tree uses -- @wdio/config's `deepmergeCustom` with a `mergeArrays` handler reading `meta.key` and returning `utils.actions.defaultMerge`, and webdriver's `deepmergeCustom({ mergeArrays: false })`. A scan of the whole installed tree found no other binding than `deepmerge` and `deepmergeCustom`."
     },
-    "smol-toml": {
-      "check": "node -e \"const fs=require('node:fs');process.stdout.write(JSON.parse(fs.readFileSync('node_modules/markdownlint-cli2/package.json','utf8')).dependencies['smol-toml'])\"",
-      "expect": "1.8.0",
-      "manualCheck": "The check reads the exact version markdownlint-cli2 pins, which is what makes the override necessary. When it moves to 1.9.0 or later the override and this entry can go.",
+    "katex": {
       "section": "overrides",
-      "why": "Clears GHSA-r4xh-jqrq-34v2 (quadratic-time parse() from parseKey rescanning to the end of the document), patched in 1.9.0. markdownlint-cli2 pins `smol-toml` to exactly 1.8.0 at every release up to the newest, so no direct bump reaches it, and `npm audit fix --force` offers only a DOWNGRADE of markdownlint-cli2 to 0.21.0. It is reached through the markdownlint answer's own markdownlint-cli2 and, on the toolkit presets, through @mnaoumov/typescript-dev-toolkit, which declares markdownlint-cli2 itself. The spec stays inside the 1.x major, and markdownlint-cli2 imports only `parse`, to read a `.markdownlint-cli2.toml` config."
+      "why": "Clears GHSA-238p-pmpm-9mq7 (KaTeX prototype pollution bypassing trust restrictions, >=0.11.0 <0.18.2), which also carried the advisories on micromark-extension-math and markdownlint. Reached only through the toolkit packages -> markdownlint -> micromark-extension-math@3.1.0 (its newest release), which declares katex ^0.16.0, so no bump reaches the fix. The 0.x minor jump is safe because nothing here ever runs KaTeX: markdownlint imports only `math` (the micromark syntax extension) from micromark-extension-math, and katex is required solely by its `mathHtml` half, which markdownlint never loads. NEVER take the `npm audit fix --force` remedy: it downgrades the toolkit packages. Mirrors the same override in obsidian-file-bundles.",
+      "check": "node -e \"const fs=require('node:fs');process.stdout.write(JSON.parse(fs.readFileSync('node_modules/micromark-extension-math/package.json','utf8')).dependencies.katex)\"",
+      "expect": "^0.16.0",
+      "manualCheck": "The check reads the range micromark-extension-math declares. When it admits 0.18.2 or later the override and this entry can both go."
+    },
+    "moment": {
+      "section": "overrides",
+      "why": "Clears GHSA-4p3w-j4w9-5jqw (moment path traversal via a crafted non-string locale name, >=2.29.2 <2.31.0), which also carried the advisories on obsidian 1.12.3, eslint-plugin-obsidianmd and @mnaoumov/obsidian-dev-toolkit. Reached through eslint-plugin-obsidianmd -> obsidian@1.12.3, which pins moment at the exact 2.29.4. The direct obsidian@1.14.4 already uses 2.31.0, so the override collapses the tree onto that one copy rather than adding a version; it is a minor move within 2.x. Mirrors the same override in obsidian-file-bundles.",
+      "check": "node -e \"const fs=require('node:fs');process.stdout.write(JSON.parse(fs.readFileSync('node_modules/eslint-plugin-obsidianmd/node_modules/obsidian/package.json','utf8')).dependencies.moment)\"",
+      "expect": "2.29.4",
+      "manualCheck": "The check reads the exact moment pin of the obsidian copy eslint-plugin-obsidianmd brings (it declares obsidian 1.12.3 exactly). When eslint-plugin-obsidianmd moves to an obsidian whose moment is 2.31.0 or later, or that nested copy disappears and the check fails to read it, re-run `npm audit` without the override and drop both if it stays clean."
     }
   }
 }
