@@ -3,7 +3,10 @@ import type {
   TFile
 } from 'obsidian';
 
-import { configureCommunityPlugin } from '@mnaoumov/obsidian-lib/community-plugins';
+import {
+  configureCommunityPlugin,
+  installConfigureEnableCommunityPlugin
+} from '@mnaoumov/obsidian-lib/community-plugins';
 import { findPluginApi } from '@mnaoumov/obsidian-lib/plugin/plugin-api';
 import {
   Component,
@@ -44,6 +47,8 @@ interface RelationsChangedEventPayload {
 //
 // The plugin id has to match `manifest.json` exactly: commands are keyed by it, and so is `data.json`.
 const PLUGIN_ID = 'labelled-links';
+const DATACORE_PLUGIN_ID = 'datacore';
+const DATAVIEW_PLUGIN_ID = 'dataview';
 
 const DEFAULT_RELATION_DEFINITIONS = ['parent <-> child', 'spouse <-> spouse', 'sibling <-> sibling'];
 const NOTICE_DURATION_IN_MILLISECONDS = 10000;
@@ -141,6 +146,30 @@ export function stopListeningToRelationsChanged(): void {
 }
 
 /**
+ * Installs and enables `Datacore`, which also reads the inline fields on **01 Relations**.
+ *
+ * The demo vault ships only the plugin under test and the helper, so `Datacore` is installed through Obsidian's
+ * own store path rather than committed to the vault.
+ *
+ * Manual equivalent: install and enable `Datacore` from **Settings -> Community plugins -> Browse**.
+ */
+export async function installDatacore(app: App): Promise<void> {
+  await installCompanionPlugin(app, DATACORE_PLUGIN_ID, 'Datacore');
+}
+
+/**
+ * Installs and enables `Dataview`, the plugin the inline-field syntax on **01 Relations** comes from.
+ *
+ * The demo vault ships only the plugin under test and the helper, so `Dataview` is installed through Obsidian's
+ * own store path rather than committed to the vault.
+ *
+ * Manual equivalent: install and enable `Dataview` from **Settings -> Community plugins -> Browse**.
+ */
+export async function installDataview(app: App): Promise<void> {
+  await installCompanionPlugin(app, DATAVIEW_PLUGIN_ID, 'Dataview');
+}
+
+/**
  * Runs the plugin's `Rebuild relation index` command, which reads every note again and shows how many
  * relations it found.
  *
@@ -214,6 +243,19 @@ function getApi(app: App): LabelledLinksApi | null {
     new Notice('The Labelled Links API is not available. Is the plugin enabled?');
   }
   return labelledLinksApi;
+}
+
+async function installCompanionPlugin(app: App, pluginId: string, pluginName: string): Promise<void> {
+  new Notice(createFragment((f) => {
+    f.appendText('Installing ');
+    f.createEl('code', { text: pluginName });
+    f.appendText('...');
+  }));
+  await installConfigureEnableCommunityPlugin({ app, pluginId });
+  new Notice(createFragment((f) => {
+    f.createEl('code', { text: pluginName });
+    f.appendText(' is installed and enabled.');
+  }));
 }
 
 function getBaseName(path: string): string {
