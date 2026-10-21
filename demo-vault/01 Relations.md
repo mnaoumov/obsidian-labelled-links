@@ -21,6 +21,8 @@ Open either note with the relations pane showing, and the other one is listed un
 
 From the other end, a relation shows its inverse label from the registry in [02 Settings](<./02 Settings.md>). Bob's incoming `child` relation from Alice reads as `parent`, and Dan's incoming `spouse` reads as `spouse`, because that label is its own inverse. The inverse is worked out in memory and never written into [Bob](<./Materials/01 Relations/Bob.md>) or Dan.
 
+A label the registry gives no inverse reads as itself from both ends. [Carol](<./Materials/01 Relations/Carol.md>) has the line `mentor:: [Alice](<Alice.md>)`, and the registry does not list `mentor`, so Alice's incoming relation from Carol is labelled `mentor` too. You do not have to declare such a label: a lone `mentor` line in the registry behaves exactly like leaving it out, and only says on record that it has no inverse. Add `mentor <-> mentee` to the registry and Alice's end reads `mentee` instead.
+
 A link that is neither, like the plain link to [Carol](<./Materials/01 Relations/Carol.md>) in Bob's note, is kept as an unlabelled link and backlink.
 
 ## Rebuild the index

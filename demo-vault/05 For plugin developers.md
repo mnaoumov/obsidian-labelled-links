@@ -54,12 +54,21 @@ Manual equivalent: find the line `parent <-> child` in **Relation registry**.
 
 ```code-button
 ---
-caption: Get the inverse of "mentions"
+caption: Get the inverse of "mentor"
 ---
-require('/demoSetup.ts').showInverseLabel(app, 'mentions');
+require('/demoSetup.ts').showInverseLabel(app, 'mentor');
 ```
 
-Manual equivalent: look for `mentions` in **Relation registry**. It is not there, so the answer is `null`.
+Manual equivalent: look for `mentor` in **Relation registry**. It is not there, so the answer is `null`. `getRelations` still labels the incoming relation, with the written label itself: Alice's incoming relation from [Carol](<./Materials/01 Relations/Carol.md>) comes back as `mentor`.
+
+```code-button
+---
+caption: Get Alice's incoming relations
+---
+require('/demoSetup.ts').showRelations(app, 'Materials/01 Relations/Alice.md', { direction: 'incoming' });
+```
+
+Manual equivalent: open [Alice](<./Materials/01 Relations/Alice.md>) and read the **Incoming** section of the pane.
 
 ## Listen for changes
 

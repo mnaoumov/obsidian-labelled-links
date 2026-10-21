@@ -44,24 +44,20 @@ The badge sits after the link while you edit. Type around it and it moves with t
 
 ## A label with no inverse
 
-Take `spouse` out of the registry and the badge stays, because the link is still labelled, but the tooltip's second line says no inverse label is registered for it.
+A labelled link still gets its badge when the registry has no inverse for its label. Carol's `mentor` link to Alice is one.
 
 ```code-button
 ---
-caption: Remove "spouse <-> spouse" from the registry
+caption: Open Carol in Reading view
 ---
-await require('/demoSetup.ts').setRelationDefinitions(app, ['parent <-> child', 'sibling <-> sibling']);
+await require('/demoSetup.ts').openNoteIn(app, 'Materials/01 Relations/Carol.md', 'reading');
 ```
 
-Manual equivalent: delete the line `spouse <-> spouse` from **Relation registry** in the settings tab.
+Manual equivalent: open [Carol](<./Materials/01 Relations/Carol.md>) and switch to **Reading view**.
 
-Hover over the badge again, then put the default registry back:
+The link to Alice shows a `mentor` badge, and its tooltip reads:
 
-```code-button
----
-caption: Reset the registry to its default
----
-await require('/demoSetup.ts').resetRelationDefinitions(app);
-```
+- `Carol --mentor--> Alice`
+- `No inverse label is registered for "mentor".`
 
-Manual equivalent: add the line `spouse <-> spouse` back.
+The registry in [02 Settings](<./02 Settings.md>) does not list `mentor`, so there is no second label to show. Alice's end of the link reads as `mentor` in the relations pane.
