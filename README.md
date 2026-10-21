@@ -45,7 +45,7 @@ A copy of the vault ships with every release. You can access it via any of the f
 
 ## What it does
 
-- **Every link-valued property, and every link in an inline field, is a relation**, labelled with the property or field name, with no setup. An inline field takes its whole line (`employer:: [[Acme]]`), or sits inside a sentence wrapped in brackets (`[employer:: [[Acme]]]` or `(employer:: [[Acme]])`). [01 Relations](<./demo-vault/01 Relations.md>)
+- **Every link-valued property, and every link in an inline field, is a relation**, labelled with the property or field name, with no setup. An inline field takes its whole line (`employer:: [[Acme]]`), or sits inside a sentence wrapped in brackets (`[employer:: [[Acme]]]` or `(employer:: [[Acme]])`). To label a link without the label showing, put it in a comment right after the link: `[[Acme]]%%:employer%%`. [01 Relations](<./demo-vault/01 Relations.md>)
 - **A relation registry** declares each label pair once: `parent <-> child`, a symmetric `spouse <-> spouse`, or a lone label with no inverse. The inverse is worked out in memory and never written into a note. [02 Settings](<./demo-vault/02 Settings.md>)
 - **The relations pane** lists every relation of the active note, outgoing and incoming, grouped by label, with each incoming relation under its inverse label and the link as its source wrote it beside it (`Alice --child--> Bob` under `parent` on Bob), plus the plain links and backlinks with the line each one sits on. [03 Relations pane](<./demo-vault/03 Relations pane.md>)
 - **A badge on each labelled link** shows its label in Live Preview and in Reading view, with a tooltip naming the relation in both directions. [04 Link badges](<./demo-vault/04 Link badges.md>)

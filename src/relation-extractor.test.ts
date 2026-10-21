@@ -94,6 +94,43 @@ describe('extractReferences', () => {
     expect(extract('Note [employee:: [[Alice]]\n')).toStrictEqual([{ label: null, link: 'Alice' }]);
   });
 
+  it('labels a link with the hidden label in the comment right after it', () => {
+    expect(extract('Mentions [[Bob]]%%:child%% and [[Carol]]%%:friend%%, and [[Dave]].\n')).toStrictEqual([
+      { label: 'child', link: 'Bob' },
+      { label: 'friend', link: 'Carol' },
+      { label: null, link: 'Dave' }
+    ]);
+  });
+
+  it.each([
+    ['[[Bob]] %%:child%%'],
+    ['[[Bob]]%% : child %%'],
+    ['[Bob](Bob.md)%%:child%%'],
+    ['![[Bob]]%%:child%%']
+  ])('reads a hidden label written as %j', (line) => {
+    expect(extract(`${line}\n`).map(({ label }) => label)).toStrictEqual(['child']);
+  });
+
+  it('keeps spaces inside a hidden label', () => {
+    expect(extract('[[Alice]]%%:works for%%\n')).toStrictEqual([{ label: 'works for', link: 'Alice' }]);
+  });
+
+  it.each([
+    ['[[Bob]]%%child%%'],
+    ['[[Bob]] text %%:child%%'],
+    ['[[Bob]]%%:child'],
+    ['[[Bob]]%%:%%']
+  ])('reads no hidden label from %j', (line) => {
+    expect(extract(`${line}\n`).map(({ label }) => label)).toStrictEqual([null]);
+  });
+
+  it('prefers a hidden label over the inline field the link sits in', () => {
+    expect(extract('employee:: [[Alice]]%%:mentor%%, [[Bob]]\n')).toStrictEqual([
+      { label: 'mentor', link: 'Alice' },
+      { label: 'employee', link: 'Bob' }
+    ]);
+  });
+
   it('treats a link outside any field as plain', () => {
     expect(extract('# Heading\n\nSee [[Alice]] and [Bob](Bob.md).\n')).toStrictEqual([
       { label: null, link: 'Alice' },

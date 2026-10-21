@@ -17,6 +17,14 @@ A field written that way takes its whole line. To put one in the middle of a sen
 
 Open either note with the relations pane showing, and the other one is listed under `sibling` twice: once as the outgoing relation the note writes, and once as the incoming relation the other note writes, which reads as `sibling` from this end because `sibling` is its own inverse.
 
+## Hidden labels
+
+Every form above puts the label in the text. To label a link in a sentence without the label showing, put a comment holding `:` and the label right after the link: `[[Erin]]%%:child%%`, or `[Erin](<Erin.md>)%%:child%%`. Reading view does not render a comment, so the sentence reads as if the link were plain, and the link badge is the only visible trace of the label. The link itself stays outside the comment, because Obsidian does not index a link inside one: it keeps its backlink, its graph edge and its rename updates. The `:` tells a label from an ordinary comment, so `[[Erin]]%%check this%%` labels nothing. Spaces are allowed between the link and the comment and inside the comment, and a hidden label wins over an inline field the link sits in.
+
+[Dan](<./Materials/01 Relations/Dan.md>) writes `[Erin](<Erin.md>)%%:child%%` in a sentence, so his link to [Erin](<./Materials/01 Relations/Erin.md>) is labelled `child`, and reads as `parent` from Erin's end.
+
+A property hides the label from the sentence too, by moving the link out of it: `child: "[[Erin]]"`.
+
 ## Inverse labels
 
 From the other end, a relation shows its inverse label from the registry in [02 Settings](<./02 Settings.md>). Bob's incoming `child` relation from Alice reads as `parent`, and Dan's incoming `spouse` reads as `spouse`, because that label is its own inverse. The inverse is worked out in memory and never written into [Bob](<./Materials/01 Relations/Bob.md>) or Dan.
