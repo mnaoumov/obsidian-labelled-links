@@ -1,8 +1,5 @@
 ---
-obsidian-dev-utils:
-  demo-vault-validation:
-    allow-wikilinks: Obsidian reads a link in a property only as a wikilink, and the property link is what this note demonstrates.
-child: "[[Bob]]"
+child: "[Bob](<Bob.md>)"
 ---
 
 # Alice
