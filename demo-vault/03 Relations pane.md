@@ -16,7 +16,7 @@ Manual equivalent: open [Alice](<./Materials/01 Relations/Alice.md>), then open 
 The pane has up to three sections:
 
 - **Outgoing** lists the relations written in the note, grouped by label. Alice has `child` (Bob) and `spouse` (Dan).
-- **Incoming** lists the relations other notes write about this one, each under its **inverse** label. Open Bob and Alice's `child` link shows up under `parent`, with a faint `written as child` beside it, because the registry in [02 Settings](<./02 Settings.md>) pairs `parent <-> child`. Alice's own **Incoming** section has Carol under `mentor`, with no `written as` note: the registry has no inverse for `mentor`, so the label from this end is the one Carol wrote.
+- **Incoming** lists the relations other notes write about this one, each under its **inverse** label. Open Bob and Alice's `child` link shows up under `parent`, with a faint `Alice --child--> Bob` beside it, because the registry in [02 Settings](<./02 Settings.md>) pairs `parent <-> child`. That arrow is the link as Alice wrote it: Alice's note links to Bob with the label `child`, and Bob reads the same link as `parent`. Hover over it and a tooltip says so in words. Alice's own **Incoming** section has Carol under `mentor`, with no arrow beside it: the registry has no inverse for `mentor`, so the label from this end is the one Carol wrote.
 - **Unlabelled** holds the plain links (**Links**) and backlinks (**Backlinks**), each with the line it sits on, so you can tell why the link is there.
 
 Click a note in the pane to open it, with `Ctrl` / `Cmd` held to open it in a new tab. Hover over it for a page preview, also with `Ctrl` / `Cmd` held.

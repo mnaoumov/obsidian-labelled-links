@@ -93,7 +93,7 @@ describe('Relations pane', () => {
 
     expect(sections).toEqual([
       {
-        groups: [{ label: 'parent', rows: [{ link: 'RP Alice', snippet: '', writtenLabel: 'written as child' }] }],
+        groups: [{ label: 'parent', rows: [{ link: 'RP Alice', snippet: '', writtenLabel: 'RP Alice --child--> RP Bob' }] }],
         title: 'Incoming'
       },
       {
