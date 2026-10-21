@@ -76,6 +76,11 @@ const FULL_LINE_FIELD_REG_EXP = new RegExp(
  */
 const BRACKETED_KEY_REG_EXP = new RegExp(String.raw`^${KEY_FORMATTING}(?<key>${KEY_START}${KEY_REST}*?)${KEY_FORMATTING}\s*::`, 'u');
 
+/**
+ * A hidden label: a comment holding `:` and the label, right after the link it labels, `[[B]]%%:child%%`.
+ */
+const COMMENT_LABEL_REG_EXP = new RegExp(String.raw`^[ \t]*%%[ \t]*:[ \t]*(?<key>${KEY_START}${KEY_REST}*?)[ \t]*%%`, 'u');
+
 const CLOSING_BRACKETS = new Map([
   ['(', ')'],
   ['[', ']']
@@ -95,6 +100,8 @@ interface FindClosingBracketParams {
  *   links of `employee: ["[[A]]", "[[B]]"]` are labelled `employee`.
  * - A link in the value of an inline field (`employee:: [[B]]`, `[employee:: [[B]]]`, `(employee:: [[B]])`) is
  *   labelled with the field key.
+ * - A link followed by a `%%:label%%` comment (`[[B]]%%:child%%`) is labelled with the comment's label, which wins
+ *   over an inline field the link sits in. Being a comment, the label is not rendered in Reading view.
  * - Every other link and embed is a plain link, with the label `null`.
  *
  * @param params - The note's metadata and text.
@@ -135,7 +142,7 @@ export function extractReferences(params: ExtractReferencesParams): ExtractedRef
       fieldsByLine.set(lineIndex, fields);
     }
 
-    references.push({ label: findLabel(fields, reference), reference });
+    references.push({ label: findCommentLabel(lines, reference) ?? findLabel(fields, reference), reference });
   }
 
   return references;
@@ -190,6 +197,12 @@ function findClosingBracket(params: FindClosingBracketParams): number {
   }
 
   return -1;
+}
+
+function findCommentLabel(lines: readonly string[], reference: ReferenceCache): null | string {
+  const { end } = reference.position;
+  const match = COMMENT_LABEL_REG_EXP.exec((lines[end.line] ?? '').slice(end.col));
+  return match ? getMandatoryNamedGroup(match, 'key').trim() : null;
 }
 
 /**
