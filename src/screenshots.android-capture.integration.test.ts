@@ -79,22 +79,12 @@ type NoteMode = 'live-preview' | 'reading';
 
 beforeAll(async () => {
   await evalInObsidian({
-    async callback({ alicePath, app }): Promise<void> {
+    callback({ app }): void {
       app.changeTheme('obsidian');
 
       // Each note opens with its own `# H1`, so the inline title would print every name twice.
       app.vault.setConfig('showInlineTitle', false);
-
-      // The demo vault's lint exemption is not part of the example, and would take a row of Alice's properties.
-      const alice = app.vault.getFileByPath(alicePath);
-      if (!alice) {
-        throw new Error(`${alicePath} is not in the vault`);
-      }
-      await app.fileManager.processFrontMatter(alice, (frontmatter: Record<string, unknown>) => {
-        delete frontmatter['obsidian-dev-utils'];
-      });
     },
-    input: { alicePath: ALICE_PATH },
     vaultPath: vaultPath()
   });
 
