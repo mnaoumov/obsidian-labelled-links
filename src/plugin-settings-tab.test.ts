@@ -79,4 +79,12 @@ describe('PluginSettingsTab', () => {
     expect(textArea?.hasClass('labelled-links-registry')).toBe(true);
     expect(setting?.descEl.textContent).toContain('employee <-> employer');
   });
+
+  it('shows the registry examples as rendered inline code', async () => {
+    const tab = await createTab();
+    const [setting] = renderRows(tab);
+    const codeEls = [...setting?.descEl.querySelectorAll('code') ?? []];
+    expect(codeEls.map((codeEl) => codeEl.textContent)).toStrictEqual(['employee <-> employer', 'spouse <-> spouse', 'mentions']);
+    expect(codeEls.every((codeEl) => codeEl.parentElement?.matches('.markdown-rendered.code'))).toBe(true);
+  });
 });
