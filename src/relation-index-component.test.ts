@@ -138,6 +138,26 @@ describe('RelationIndexComponent derived relations', () => {
     ]);
   });
 
+  it('keeps only the notes passing a step\'s filters, an unresolved one having no properties, and leaves out the except labels', async () => {
+    const { index } = await createIndex({
+      'A.md': '',
+      'B.md': '---\ndeathDate: 2000-01-01\n---\n',
+      'P.md': 'child:: [[A]]\nchild:: [[B]]\nchild:: [[Ghost]]\n'
+    });
+    const { definitions, rules } = parseRelationDefinitions([
+      'parent <-> child',
+      'livingSibling = parent -> child[!deathDate]',
+      'lateSibling = parent -> child[deathDate]',
+      'otherSibling = parent -> child except livingSibling'
+    ]);
+    index.setRegistry(new RelationRegistry(definitions, rules));
+    expect(index.getDerivedRelations('A.md').map((relation) => `${relation.label} ${relation.targetPath}`)).toStrictEqual([
+      'livingSibling Ghost',
+      'lateSibling B.md',
+      'otherSibling B.md'
+    ]);
+  });
+
   it('filters by rule label, ignoring case, and derives nothing for a label no rule defines', async () => {
     const { index } = await createFamilyIndex();
     expect(index.getDerivedRelations('Ivy.md', { label: 'AUNT' })).toHaveLength(2);

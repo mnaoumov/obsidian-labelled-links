@@ -45,6 +45,14 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
           fragment.appendText(' is a rule: a note\'s parent\'s sibling is shown as its aunt. Separate alternative chains with ');
           appendCodeBlock(fragment, '|');
           fragment.appendText('. ');
+          appendCodeBlock(fragment, 'spouse = partnership[!divorceDate] -> partner');
+          fragment.appendText(' keeps only the notes a step reaches whose property is set, or with ');
+          appendCodeBlock(fragment, '!');
+          fragment.appendText(' is not, or holds a value: ');
+          appendCodeBlock(fragment, '[status: retired]');
+          fragment.appendText('. ');
+          appendCodeBlock(fragment, 'stepParent = parent -> spouse except parent');
+          fragment.appendText(' leaves out the notes already related by the labels after except. ');
           appendCodeBlock(fragment, 'birthMother < mother');
           fragment.appendText(' makes a label a kind of another: a query for mother can ask to include birthMother links too. ');
           appendCodeBlock(fragment, 'parent @ gender: female -> mother, male -> father');
