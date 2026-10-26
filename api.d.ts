@@ -30,6 +30,22 @@ import type {
  */
 export interface LabelledLinksApi {
   /**
+   * Gets the relations the composition rules in the settings derive for a note: `aunt = parent -> sibling`
+   * gives Erin's aunt Carol through Erin's parent Dan and Dan's sibling Carol. They are worked out at query
+   * time and never written into a note.
+   *
+   * A derived relation never ends at the queried note, and is left out when the note already has a stored
+   * relation with the same label to the same note. {@link LabelledLinksApi.getRelations} never returns one.
+   *
+   * A fresh array of fresh objects on each call, so writing to them changes nothing here.
+   *
+   * @param pathOrFile - The note, or the path an unresolved link names.
+   * @param options - Filters by rule label.
+   * @returns The derived relations, in rule order.
+   */
+  getDerivedRelations: (pathOrFile: string | TFile, options?: LabelledLinksGetDerivedRelationsOptions) => LabelledLinksDerivedRelation[];
+
+  /**
    * Gets the label a relation carries when it is seen from its target, from the relation definitions in the
    * settings, ignoring case.
    *
@@ -49,6 +65,51 @@ export interface LabelledLinksApi {
    * @returns The relations, outgoing first.
    */
   getRelations: (pathOrFile: string | TFile, options?: LabelledLinksGetRelationsOptions) => LabelledLinksRelation[];
+}
+
+/**
+ * A relation a composition rule derives, seen from the queried note: the label describes the target, as
+ * `Carol is Erin's aunt`.
+ *
+ * Plain data, and additive only, as {@link LabelledLinksRelation} is.
+ */
+export interface LabelledLinksDerivedRelation {
+  /**
+   * Whether {@link LabelledLinksDerivedRelation.targetPath} is an existing file.
+   */
+  readonly isTargetResolved: boolean;
+
+  /**
+   * The derived label, as its rule writes it.
+   */
+  readonly label: string;
+
+  /**
+   * The path of the queried note.
+   */
+  readonly sourcePath: string;
+
+  /**
+   * The stored relations the rule's chain went through, in order, each seen from the note its step starts
+   * at: the first from {@link LabelledLinksDerivedRelation.sourcePath}, and the last reaching
+   * {@link LabelledLinksDerivedRelation.targetPath}.
+   */
+  readonly steps: readonly LabelledLinksRelation[];
+
+  /**
+   * The path of the note the chain ends at.
+   */
+  readonly targetPath: string;
+}
+
+/**
+ * Options for {@link LabelledLinksApi.getDerivedRelations}.
+ */
+export interface LabelledLinksGetDerivedRelationsOptions {
+  /**
+   * Only the relations this rule label derives, compared ignoring case. All when omitted.
+   */
+  readonly label?: string;
 }
 
 /**
@@ -133,8 +194,9 @@ export type RelationsChangedEventName = 'labelled-links:relations-changed';
 export interface RelationsChangedEventPayload {
   /**
    * The paths of the notes whose relations may have changed, or `null` when any note's may have: after the
-   * index is first filled or rebuilt, after a file is created, renamed or deleted, and after the relation
-   * definitions change.
+   * index is first filled or rebuilt, after a file is created, renamed or deleted, after the relation
+   * definitions change, and after every change while the definitions hold a composition rule, since a derived
+   * relation can change when a note several links away does.
    */
   readonly paths: null | readonly string[];
 }

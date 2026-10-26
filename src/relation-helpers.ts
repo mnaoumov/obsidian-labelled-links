@@ -17,6 +17,36 @@ const LABELLED_LINK_FORMATTERS: Record<LabelForm, (label: string, original: stri
 };
 
 /**
+ * One step of a derivation chain, for {@link formatDerivation}.
+ */
+export interface DerivationStep {
+  /**
+   * The step's label, as seen from the note the step starts at.
+   */
+  readonly label: string;
+
+  /**
+   * The name of the note the step reaches.
+   */
+  readonly targetName: string;
+}
+
+/**
+ * Params for {@link formatDerivation}.
+ */
+export interface FormatDerivationParams {
+  /**
+   * The name of the note the chain starts at.
+   */
+  readonly sourceName: string;
+
+  /**
+   * The chain's steps, in order.
+   */
+  readonly steps: readonly DerivationStep[];
+}
+
+/**
  * Params for {@link formatRelationSentence}.
  */
 export interface FormatRelationSentenceParams {
@@ -59,6 +89,22 @@ export interface FormatWrittenRelationParams {
    * The name of the note the label is written in.
    */
   readonly sourceName: string;
+}
+
+/**
+ * Spells the chain a derived relation was built from, naming every note but the last, which the chain names:
+ * Erin's parent Dan and Dan's sibling Carol are `Erin's parent Dan's sibling`.
+ *
+ * @param params - The note the chain starts at, and its steps.
+ * @returns The text.
+ */
+export function formatDerivation(params: FormatDerivationParams): string {
+  const { sourceName, steps } = params;
+  const parts = [sourceName];
+  for (const [index, step] of steps.entries()) {
+    parts.push(index < steps.length - 1 ? `'s ${step.label} ${step.targetName}` : `'s ${step.label}`);
+  }
+  return parts.join('');
 }
 
 /**

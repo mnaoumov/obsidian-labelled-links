@@ -10,7 +10,10 @@ import {
   vi
 } from 'vitest';
 
-import type { Relation } from './relation-index-component.ts';
+import type {
+  DerivedRelation,
+  Relation
+} from './relation-index-component.ts';
 
 import {
   RelationDirection,
@@ -64,6 +67,93 @@ function summarize(relations: readonly Relation[]): RelationSummary[] {
     targetPath
   }));
 }
+
+const FAMILY_FILES = {
+  'Alice.md': '---\nmother: "[[Beth]]"\n---\nspouse:: [[Dan]]\n',
+  'Beth.md': 'mother:: [[Carol]]\nchild:: [[Alice]]\nchild:: [[Eve]]\nchild:: [[Ghost]]\n',
+  'Carol.md': '',
+  'Couple.md': 'partner:: [[Dan]]\npartner:: [[Frank]]\n',
+  'Couple2.md': 'partner:: [[Alice]]\npartner:: [[Dan]]\n',
+  'Dan.md': '',
+  'Eve.md': 'sibling:: [[Alice]]\n',
+  'Frank.md': '',
+  'Ivy.md': '---\nparent: "[[Eve]]"\n---\n'
+};
+
+const FAMILY_DEFINITIONS = [
+  'parent <-> child',
+  'sibling <-> sibling',
+  'spouse <-> spouse',
+  'partner <-> partnership',
+  'grandmother = mother -> mother',
+  'sibling = parent -> child',
+  'aunt = parent -> sibling',
+  'mate = spouse | partnership -> partner'
+];
+
+interface DerivedRelationSummary {
+  readonly isTargetResolved: boolean;
+  readonly label: string;
+  readonly steps: readonly string[];
+  readonly targetPath: string;
+}
+
+async function createFamilyIndex(): Promise<IndexFixture> {
+  const fixture = await createIndex(FAMILY_FILES);
+  const { definitions, rules } = parseRelationDefinitions(FAMILY_DEFINITIONS);
+  fixture.index.setRegistry(new RelationRegistry(definitions, rules));
+  return fixture;
+}
+
+function summarizeDerived(relations: readonly DerivedRelation[]): DerivedRelationSummary[] {
+  return relations.map(({ isTargetResolved, label, steps, targetPath }) => ({
+    isTargetResolved,
+    label,
+    steps: steps.map((step) => `${step.sourcePath} ${String(step.linkLabel)} ${step.targetPath}`),
+    targetPath
+  }));
+}
+
+describe('RelationIndexComponent derived relations', () => {
+  it('walks each rule\'s chains, following inverse labels, leaving out the note itself and what is stored', async () => {
+    const { index } = await createFamilyIndex();
+    expect(summarizeDerived(index.getDerivedRelations('Alice.md'))).toStrictEqual([
+      { isTargetResolved: true, label: 'grandmother', steps: ['Alice.md mother Beth.md', 'Beth.md mother Carol.md'], targetPath: 'Carol.md' },
+      // Eve is Alice's sibling too, but Eve's note stores it, so only the unresolved Ghost is derived.
+      { isTargetResolved: false, label: 'sibling', steps: ['Beth.md child Alice.md', 'Beth.md child Ghost'], targetPath: 'Ghost' },
+      // The partnership chain reaches Dan too, so he is listed once, by the first chain.
+      { isTargetResolved: true, label: 'mate', steps: ['Alice.md spouse Dan.md'], targetPath: 'Dan.md' }
+    ]);
+  });
+
+  it('derives through a hub note linking both ends, and through a rule naming another rule', async () => {
+    const { index } = await createFamilyIndex();
+    expect(summarizeDerived(index.getDerivedRelations('Dan.md'))).toStrictEqual([
+      { isTargetResolved: true, label: 'mate', steps: ['Alice.md spouse Dan.md'], targetPath: 'Alice.md' },
+      { isTargetResolved: true, label: 'mate', steps: ['Couple.md partner Dan.md', 'Couple.md partner Frank.md'], targetPath: 'Frank.md' }
+    ]);
+    expect(summarizeDerived(index.getDerivedRelations('Ivy.md'))).toStrictEqual([
+      { isTargetResolved: true, label: 'aunt', steps: ['Ivy.md parent Eve.md', 'Eve.md sibling Alice.md'], targetPath: 'Alice.md' },
+      { isTargetResolved: false, label: 'aunt', steps: ['Ivy.md parent Eve.md', 'Beth.md child Eve.md', 'Beth.md child Ghost'], targetPath: 'Ghost' }
+    ]);
+  });
+
+  it('filters by rule label, ignoring case, and derives nothing for a label no rule defines', async () => {
+    const { index } = await createFamilyIndex();
+    expect(index.getDerivedRelations('Ivy.md', { label: 'AUNT' })).toHaveLength(2);
+    expect(index.getDerivedRelations('Ivy.md', { label: 'parent' })).toStrictEqual([]);
+  });
+
+  it('reports every change as a change to any note while the registry has a rule', async () => {
+    const { app, index } = await createFamilyIndex();
+    index.getDerivedRelations('Alice.md');
+    const handler = vi.fn();
+    index.on('changed', handler);
+    const file = getFile(app, 'Carol.md');
+    app.metadataCache.trigger('changed', file, 'mother:: [[Zoe]]\n', ensureNonNullable(app.metadataCache.getFileCache(file)));
+    expect(handler).toHaveBeenCalledWith(null);
+  });
+});
 
 describe('RelationIndexComponent', () => {
   it('lists a note\'s outgoing relations and plain links, unresolved targets included', async () => {

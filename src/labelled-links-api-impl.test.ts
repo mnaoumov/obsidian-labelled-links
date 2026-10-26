@@ -31,7 +31,8 @@ async function createApi(): Promise<ApiFixture> {
   const app = App.createConfigured__({ files: FILES });
   const index = new RelationIndexComponent(app.asOriginalType__());
   index.load();
-  index.setRegistry(new RelationRegistry(parseRelationDefinitions(['employee <-> employer', 'spouse <-> spouse']).definitions));
+  const { definitions, rules } = parseRelationDefinitions(['employee <-> employer', 'spouse <-> spouse', 'spouseEmployer = spouse -> employer']);
+  index.setRegistry(new RelationRegistry(definitions, rules));
   await index.rebuild();
   return { api: new LabelledLinksApiImpl(index), app, index };
 }
@@ -74,6 +75,30 @@ describe('LabelledLinksApiImpl', () => {
     expect(validateSync(LABELLED_LINKS_API_CONTRACT.getRelations.output, api.getRelations('Bob.md'))).toEqual({
       value: api.getRelations('Bob.md')
     });
+  });
+
+  it('lists the derived relations as plain data, each with the stored relations it was built from', async () => {
+    const { api } = await createApi();
+    const relations = api.getDerivedRelations('Carol.md');
+    expect(
+      relations.map(({ isTargetResolved, label, sourcePath, steps, targetPath }) => ({
+        isTargetResolved,
+        label,
+        sourcePath,
+        steps: steps.map((step) => `${step.direction} ${String(step.label)}`),
+        targetPath
+      }))
+    ).toStrictEqual([
+      { isTargetResolved: true, label: 'spouseEmployer', sourcePath: 'Carol.md', steps: ['outgoing spouse', 'incoming employer'], targetPath: 'Alice.md' }
+    ]);
+    expect(validateSync(LABELLED_LINKS_API_CONTRACT.getDerivedRelations.output, relations)).toEqual({ value: relations });
+    expect(api.getDerivedRelations('Carol.md', { label: 'unknown' })).toEqual([]);
+  });
+
+  it('returns derived relations whose steps are copies', async () => {
+    const { api, index } = await createApi();
+    ensureNonNullable(api.getDerivedRelations('Carol.md')[0]?.steps[0]).reference.link = 'Changed';
+    expect(index.getDerivedRelations('Carol.md')[0]?.steps[0]?.reference.link).toBe('Bob');
   });
 
   it('answers the inverse label from the registry', async () => {

@@ -12,10 +12,13 @@ import type { TFile } from 'obsidian';
 
 import type {
   LabelledLinksApi,
+  LabelledLinksDerivedRelation,
+  LabelledLinksGetDerivedRelationsOptions,
   LabelledLinksGetRelationsOptions,
   LabelledLinksRelation
 } from '../api.d.ts';
 import type {
+  DerivedRelation,
   Relation,
   RelationIndexComponent
 } from './relation-index-component.ts';
@@ -32,6 +35,18 @@ export class LabelledLinksApiImpl implements LabelledLinksApi {
    * @param relationIndex - The relation index the API reads.
    */
   public constructor(private readonly relationIndex: RelationIndexComponent) {}
+
+  /**
+   * Gets the relations the composition rules derive for a note, as fresh plain objects.
+   *
+   * @param pathOrFile - The note, or the path an unresolved link names.
+   * @param options - Filters by rule label.
+   * @returns The derived relations, in rule order.
+   */
+  // eslint-disable-next-line typescript-dev-toolkit/params-options-name-match -- The options type is the published one from `api.d.ts`, which this class implements.
+  public getDerivedRelations(pathOrFile: string | TFile, options: LabelledLinksGetDerivedRelationsOptions = {}): LabelledLinksDerivedRelation[] {
+    return this.relationIndex.getDerivedRelations(pathOrFile, options).map((relation) => toPublishedDerivedRelation(relation));
+  }
 
   /**
    * Gets the label a relation carries when it is seen from its target.
@@ -60,6 +75,16 @@ export class LabelledLinksApiImpl implements LabelledLinksApi {
     });
     return relations.map((relation) => toPublishedRelation(relation));
   }
+}
+
+function toPublishedDerivedRelation(relation: DerivedRelation): LabelledLinksDerivedRelation {
+  return {
+    isTargetResolved: relation.isTargetResolved,
+    label: relation.label,
+    sourcePath: relation.sourcePath,
+    steps: relation.steps.map((step) => toPublishedRelation(step)),
+    targetPath: relation.targetPath
+  };
 }
 
 function toPublishedRelation(relation: Relation): LabelledLinksRelation {

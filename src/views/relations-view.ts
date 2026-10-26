@@ -16,11 +16,13 @@ import {
 } from 'obsidian';
 
 import type {
+  DerivedRelation,
   Relation,
   RelationIndexComponent
 } from '../relation-index-component.ts';
 
 import {
+  formatDerivation,
   formatRelationSentence,
   formatWrittenRelation,
   getNoteName,
@@ -34,18 +36,35 @@ import { normalizeLabel } from '../relation-registry.ts';
  */
 export const RELATIONS_VIEW_TYPE = 'labelled-links-relations';
 
+interface Labelled {
+  readonly label: string;
+}
+
 interface LabelledRelation extends Relation {
   readonly label: string;
 }
 
-interface RelationGroup {
+interface RelationGroup<T = Relation> {
   readonly label: string;
-  readonly relations: Relation[];
+  readonly relations: T[];
 }
 
 interface RelationsViewConstructorParams {
   readonly leaf: WorkspaceLeaf;
   readonly relationIndex: RelationIndexComponent;
+}
+
+interface RelationsViewRenderDerivedSectionParams {
+  readonly containerEl: HTMLElement;
+  readonly file: TFile;
+  readonly relations: readonly DerivedRelation[];
+}
+
+interface RelationsViewRenderLinkParams {
+  readonly containerEl: HTMLElement;
+  readonly file: TFile;
+  readonly isResolved: boolean;
+  readonly otherPath: string;
 }
 
 interface RelationsViewRenderRowParams {
@@ -67,7 +86,9 @@ interface RelationsViewRenderSectionParams {
  *
  * An incoming relation is listed under its inverse label, the label it carries as seen from the active note, with
  * a sentence naming both ends (`Bob is Alice's child`) and, in its tooltip, the link as its source writes it.
- * The pane follows the active note and redraws whenever the index reports a change that touches it.
+ * The relations the registry's composition rules derive follow, in a section of their own, each with the chain
+ * that produced it in its tooltip. The pane follows the active note and redraws whenever the index reports a
+ * change that touches it.
  */
 export class RelationsView extends ItemView {
   private file: null | TFile = null;
@@ -113,6 +134,7 @@ export class RelationsView extends ItemView {
     contentEl.createDiv({ cls: 'labelled-links-relations-title', text: file.basename });
 
     const relations = this.relationIndex.getRelations(file);
+    // A derived relation starts with a stored one, so a note with none has nothing to derive either.
     if (relations.length === 0) {
       contentEl.createDiv({ cls: 'pane-empty', text: 'This note has no relations, links or backlinks.' });
       return;
@@ -131,6 +153,7 @@ export class RelationsView extends ItemView {
       groups: groupByLabel(labelled.filter((relation) => relation.direction === RelationDirection.Incoming)),
       title: 'Incoming'
     });
+    this.renderDerivedSection({ containerEl: contentEl, file, relations: this.relationIndex.getDerivedRelations(file) });
 
     const unlabelled = relations.filter((relation) => relation.label === null);
     const snippetEls = this.renderSection({
@@ -192,13 +215,40 @@ export class RelationsView extends ItemView {
     return content.split('\n')[relation.reference.position.start.line]?.trim() ?? '';
   }
 
-  private renderRow(params: RelationsViewRenderRowParams): HTMLElement {
-    const { containerEl, file, relation } = params;
-    const otherPath = relation.direction === RelationDirection.Outgoing ? relation.targetPath : relation.sourcePath;
-    const isResolved = relation.direction === RelationDirection.Incoming || relation.isTargetResolved;
+  private renderDerivedSection(params: RelationsViewRenderDerivedSectionParams): void {
+    const { containerEl, file, relations } = params;
+    if (relations.length === 0) {
+      return;
+    }
 
-    const rowEl = containerEl.createDiv({ cls: 'labelled-links-relation' });
-    const linkEl = rowEl.createEl('a', {
+    const sectionEl = containerEl.createDiv({ cls: 'labelled-links-relations-section' });
+    sectionEl.createDiv({ cls: 'labelled-links-relations-section-title', text: 'Derived' });
+
+    for (const group of groupByLabel(relations)) {
+      const groupEl = sectionEl.createDiv({ cls: 'labelled-links-relations-group' });
+      groupEl.dataset['label'] = group.label;
+      groupEl.createDiv({ cls: 'labelled-links-relations-group-title', text: group.label });
+      for (const relation of group.relations) {
+        const rowEl = groupEl.createDiv({ cls: ['labelled-links-relation', 'labelled-links-relation-derived'] });
+        this.renderLink({ containerEl: rowEl, file, isResolved: relation.isTargetResolved, otherPath: relation.targetPath });
+
+        const sourceName = getNoteName(relation.sourcePath);
+        const sentence = formatRelationSentence({ label: relation.label, sourceName, targetName: getNoteName(relation.targetPath) });
+        const sentenceEl = rowEl.createSpan({ cls: 'labelled-links-relation-sentence', text: sentence });
+        const derivation = formatDerivation({
+          sourceName,
+          steps: relation.steps.map((step) => ({ label: ensureNonNullable(step.label), targetName: getNoteName(getOtherPath(step)) }))
+        });
+        const tooltip = `${sentence}: ${derivation}`;
+        sentenceEl.setAttribute('aria-label', tooltip);
+        setTooltip(sentenceEl, tooltip);
+      }
+    }
+  }
+
+  private renderLink(params: RelationsViewRenderLinkParams): void {
+    const { containerEl, file, isResolved, otherPath } = params;
+    const linkEl = containerEl.createEl('a', {
       cls: ['internal-link', 'labelled-links-relation-link'],
       text: isResolved ? getNoteName(otherPath) : otherPath
     });
@@ -217,6 +267,14 @@ export class RelationsView extends ItemView {
         targetEl: linkEl
       });
     });
+  }
+
+  private renderRow(params: RelationsViewRenderRowParams): HTMLElement {
+    const { containerEl, file, relation } = params;
+    const isResolved = relation.direction === RelationDirection.Incoming || relation.isTargetResolved;
+
+    const rowEl = containerEl.createDiv({ cls: 'labelled-links-relation' });
+    this.renderLink({ containerEl: rowEl, file, isResolved, otherPath: getOtherPath(relation) });
 
     // An incoming label describes the active note, not the row's: Alice's `child:: [[Bob]]` makes Bob the child.
     // The group title alone does not say which end it describes, so the row spells it out.
@@ -262,14 +320,24 @@ export class RelationsView extends ItemView {
 }
 
 /**
+ * Gets the end of a relation that is not the note it is seen from.
+ *
+ * @param relation - The relation.
+ * @returns The path of its other end.
+ */
+function getOtherPath(relation: Relation): string {
+  return relation.direction === RelationDirection.Outgoing ? relation.targetPath : relation.sourcePath;
+}
+
+/**
  * Groups labelled relations by label, ignoring case, in label order. A group is titled with the spelling its
  * first relation uses.
  *
  * @param relations - The relations, every one with a label.
  * @returns The groups.
  */
-function groupByLabel(relations: readonly LabelledRelation[]): RelationGroup[] {
-  const groups = new Map<string, RelationGroup>();
+function groupByLabel<T extends Labelled>(relations: readonly T[]): RelationGroup<T>[] {
+  const groups = new Map<string, RelationGroup<T>>();
   for (const relation of relations) {
     const key = normalizeLabel(relation.label);
     let group = groups.get(key);

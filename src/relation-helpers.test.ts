@@ -9,11 +9,21 @@ import {
 
 import { LabelForm } from './relation-extractor.ts';
 import {
+  formatDerivation,
   formatRelationSentence,
   formatWrittenRelation,
   getNoteName,
   isReferenceCache
 } from './relation-helpers.ts';
+
+describe('formatDerivation', () => {
+  it('names every note of the chain but the last', () => {
+    expect(formatDerivation({ sourceName: 'Erin', steps: [{ label: 'parent', targetName: 'Dan' }, { label: 'sibling', targetName: 'Carol' }] })).toBe(
+      'Erin\'s parent Dan\'s sibling'
+    );
+    expect(formatDerivation({ sourceName: 'Alice', steps: [{ label: 'spouse', targetName: 'Dan' }] })).toBe('Alice\'s spouse');
+  });
+});
 
 describe('formatRelationSentence', () => {
   it('names the target as the source\'s label', () => {

@@ -39,6 +39,30 @@ require('/demoSetup.ts').showRelations(app, 'Materials/01 Relations/Bob.md', { l
 
 Manual equivalent: read the **Unlabelled** section of the pane on Bob.
 
+## Query a note's derived relations
+
+`labelledLinksApi.getDerivedRelations` hands back the relations the registry's composition rules derive, which `getRelations` never includes. Each one carries its rule's `label`, the `sourcePath` and `targetPath`, and the `steps`: the stored relations the chain went through, each shaped like a `getRelations` result. First add the two rules from [02 Settings](<./02 Settings.md>):
+
+```code-button
+---
+caption: Add the "aunt" and "sibling-in-law" rules
+---
+await require('/demoSetup.ts').addCompositionRules(app);
+```
+
+Manual equivalent: add the lines `aunt = parent -> sibling` and `sibling-in-law = spouse -> sibling | sibling -> spouse` to **Relation registry**.
+
+```code-button
+---
+caption: Get Erin's derived relations
+---
+require('/demoSetup.ts').showDerivedRelations(app, 'Materials/01 Relations/Erin.md');
+```
+
+Manual equivalent: open [Erin](<./Materials/01 Relations/Erin.md>) and read the **Derived** section of the pane.
+
+The notice lists `aunt -> Carol`, through `parent` (Dan) and `sibling` (Carol). Pass `label` to ask for one rule only. With no rules in the registry the answer is always empty, so put the default registry back from [02 Settings](<./02 Settings.md>) when you are done.
+
 ## Ask for an inverse label
 
 `labelledLinksApi.getInverseLabel` answers from the registry in [02 Settings](<./02 Settings.md>), ignoring case. It returns the label itself for a symmetric one, and `null` for a label the registry has no inverse for.
@@ -72,7 +96,7 @@ Manual equivalent: open [Alice](<./Materials/01 Relations/Alice.md>) and read th
 
 ## Listen for changes
 
-The `labelled-links:relations-changed` event fires on `app.workspace` after the index has changed, so `getRelations` already reflects it by the time your callback runs. Its payload names the notes whose relations may have changed, or carries `paths: null` when any note's may have: after the index is filled or rebuilt, after a file is created, renamed or deleted, and after the registry changes.
+The `labelled-links:relations-changed` event fires on `app.workspace` after the index has changed, so `getRelations` already reflects it by the time your callback runs. Its payload names the notes whose relations may have changed, or carries `paths: null` when any note's may have: after the index is filled or rebuilt, after a file is created, renamed or deleted, after the registry changes, and after every change while the registry holds a composition rule, since a derived relation can change when a note several links away does.
 
 ```code-button
 ---
@@ -115,7 +139,7 @@ import type { LabelledLinksApi } from './api.d.ts';
 import { LABELLED_LINKS_API_CONTRACT } from './api-contract.ts';
 
 const labelledLinksApiRef = watchPluginApi<LabelledLinksApi>({
-  apiVersionRange: '^1.0.0',
+  apiVersionRange: '^1.1.0',
   app: this.app,
   component: this,
   contract: LABELLED_LINKS_API_CONTRACT,
@@ -123,7 +147,7 @@ const labelledLinksApiRef = watchPluginApi<LabelledLinksApi>({
 });
 ```
 
-`labelledLinksApiRef.value` is `null` while `Labelled Links` is not loaded, and becomes non-`null` on its own when it is, so a consumer never has to care about plugin load order. A one-off lookup with no component to own a watch, like the buttons above, uses `findPluginApi` with the same `apiVersionRange` and `pluginId`. The contract version is **`1.0.0`** and moves independently of the plugin's own version, which is why the range asks for `^1.0.0` rather than naming one.
+`labelledLinksApiRef.value` is `null` while `Labelled Links` is not loaded, and becomes non-`null` on its own when it is, so a consumer never has to care about plugin load order. A one-off lookup with no component to own a watch, like the buttons above, uses `findPluginApi` with the same `apiVersionRange` and `pluginId`. The contract version is **`1.1.0`**, which added `getDerivedRelations`, and moves independently of the plugin's own version, which is why the range asks for `^1.1.0` rather than naming one.
 
 Subscribing to the event needs no API handle at all:
 

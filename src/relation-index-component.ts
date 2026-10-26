@@ -43,6 +43,39 @@ export enum RelationDirection {
 }
 
 /**
+ * A relation a composition rule derives: `Carol is Erin's aunt` from `aunt = parent -> sibling`, through Erin's
+ * parent Dan and Dan's sibling Carol. It is never written in a note.
+ */
+export interface DerivedRelation {
+  /**
+   * Whether {@link DerivedRelation.targetPath} is an existing file.
+   */
+  readonly isTargetResolved: boolean;
+
+  /**
+   * The derived label, as its rule writes it.
+   */
+  readonly label: string;
+
+  /**
+   * The path of the queried note, which the label describes the target from.
+   */
+  readonly sourcePath: string;
+
+  /**
+   * The stored relations the chain went through, in order. Each is seen from the note its step starts at, so the
+   * first one is seen from {@link DerivedRelation.sourcePath} and the last one reaches
+   * {@link DerivedRelation.targetPath}.
+   */
+  readonly steps: readonly Relation[];
+
+  /**
+   * The path of the note the chain ends at.
+   */
+  readonly targetPath: string;
+}
+
+/**
  * A link between two notes, seen from one of them.
  */
 export interface Relation {
@@ -90,6 +123,16 @@ export interface Relation {
 }
 
 /**
+ * Options for {@link RelationIndexComponent.getDerivedRelations}.
+ */
+export interface RelationIndexComponentGetDerivedRelationsOptions {
+  /**
+   * Only the relations this rule label derives, compared ignoring case. All when omitted.
+   */
+  readonly label?: string;
+}
+
+/**
  * Options for {@link RelationIndexComponent.getRelations}.
  */
 export interface RelationIndexComponentGetRelationsOptions {
@@ -118,6 +161,15 @@ export interface RelationIndexStats {
    * How many labelled references those notes hold.
    */
   readonly relationCount: number;
+}
+
+/**
+ * A note a walk along a chain has reached, and the stored relations that reached it.
+ */
+interface ChainEnd {
+  readonly isResolved: boolean;
+  readonly path: string;
+  readonly steps: readonly Relation[];
 }
 
 /**
@@ -174,6 +226,42 @@ export class RelationIndexComponent extends LayoutReadyComponent {
    */
   public constructor(app: App) {
     super(app);
+  }
+
+  /**
+   * Gets the relations the registry's composition rules derive for a note, walking each rule's chains over the
+   * index at query time.
+   *
+   * A derived relation never ends at the queried note, and is left out when the note already has a stored
+   * relation with the same label to the same note, so it shows once, as stored. Two chains reaching the same
+   * note give one relation, by the first chain.
+   *
+   * @param pathOrFile - The note.
+   * @param options - Filters by rule label.
+   * @returns The derived relations, in rule order.
+   */
+  public getDerivedRelations(pathOrFile: PathOrFile, options: RelationIndexComponentGetDerivedRelationsOptions = {}): DerivedRelation[] {
+    this.ensureResolved();
+    const sourcePath = getPath(this.app, pathOrFile);
+    const rules = options.label === undefined ? this.registry.getRules() : [this.registry.getRule(options.label)].filter((rule) => rule !== null);
+    const derivedRelations: DerivedRelation[] = [];
+
+    for (const rule of rules) {
+      const storedPaths = new Set(this.followStoredLabel(sourcePath, rule.label).map((end) => end.path));
+      for (const end of this.followRule(sourcePath, rule.label)) {
+        if (!storedPaths.has(end.path)) {
+          derivedRelations.push({
+            isTargetResolved: end.isResolved,
+            label: rule.label,
+            sourcePath,
+            steps: end.steps,
+            targetPath: end.path
+          });
+        }
+      }
+    }
+
+    return derivedRelations;
   }
 
   /**
@@ -309,6 +397,69 @@ export class RelationIndexComponent extends LayoutReadyComponent {
     }
   }
 
+  /**
+   * Follows one step of a chain: the stored relations with the label, then the notes the label's rule derives, once
+   * per note reached.
+   *
+   * @param path - The note the step starts at.
+   * @param label - The step's label.
+   * @returns The notes the step reaches.
+   */
+  private followLabel(path: string, label: string): ChainEnd[] {
+    const ends = new Map<string, ChainEnd>();
+    for (const end of [...this.followStoredLabel(path, label), ...this.followRule(path, label)]) {
+      if (!ends.has(end.path)) {
+        ends.set(end.path, end);
+      }
+    }
+    return [...ends.values()];
+  }
+
+  /**
+   * Walks every chain of the rule that derives a label, leaving out the note the walk starts at.
+   *
+   * @param path - The note the walk starts at.
+   * @param label - The label.
+   * @returns The notes the chains reach, once each by the first chain reaching it, with the stored relations that
+   * reached them, or none when no rule derives the label.
+   */
+  private followRule(path: string, label: string): ChainEnd[] {
+    const rule = this.registry.getRule(label);
+    if (!rule) {
+      return [];
+    }
+
+    const ends = new Map<string, ChainEnd>();
+    for (const chain of rule.chains) {
+      let frontier: ChainEnd[] = [{ isResolved: true, path, steps: [] }];
+      for (const step of chain) {
+        const nextFrontier = new Map<string, ChainEnd>();
+        for (const start of frontier) {
+          for (const end of this.followLabel(start.path, step)) {
+            if (!nextFrontier.has(end.path)) {
+              nextFrontier.set(end.path, { ...end, steps: [...start.steps, ...end.steps] });
+            }
+          }
+        }
+        frontier = [...nextFrontier.values()];
+      }
+      for (const end of frontier) {
+        if (end.path !== path && !ends.has(end.path)) {
+          ends.set(end.path, end);
+        }
+      }
+    }
+    return [...ends.values()];
+  }
+
+  private followStoredLabel(path: string, label: string): ChainEnd[] {
+    return this.getRelations(path, { label }).map((relation) =>
+      relation.direction === RelationDirection.Outgoing
+        ? { isResolved: relation.isTargetResolved, path: relation.targetPath, steps: [relation] }
+        : { isResolved: true, path: relation.sourcePath, steps: [relation] }
+    );
+  }
+
   private handleDelete(file: TAbstractFile): void {
     this.sources.delete(file.path);
     this.markResolutionStale();
@@ -425,6 +576,7 @@ export class RelationIndexComponent extends LayoutReadyComponent {
   }
 
   private triggerChanged(paths: null | readonly string[]): void {
-    this.events.trigger('changed', paths);
+    // A derived relation can change when a note several links away changes, so with rules any note's may have.
+    this.events.trigger('changed', this.registry.hasRules ? null : paths);
   }
 }

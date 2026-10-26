@@ -72,4 +72,51 @@ describe('Labelled Links API', () => {
     ]);
     expect(result.changedPaths).toContainEqual(expect.arrayContaining(['API Dan.md', 'API Erin.md']));
   });
+
+  it('derives relations from a composition rule in the registry', async () => {
+    const result = await evalInObsidian({
+      async callback({ app, lib, pluginId }): Promise<unknown[]> {
+        const { configureCommunityPlugin, createNote, findPluginApi, waitUntil } = lib;
+        const api = findPluginApi<LabelledLinksApi>({ apiVersionRange: '^1.1.0', pluginId });
+        if (!api) {
+          return [];
+        }
+
+        const notes = [
+          await createNote({ content: 'child:: [[API Kid]]\nsibling:: [[API Aunt]]\n', path: 'API Dad.md' }),
+          await createNote({ content: '# Kid\n', path: 'API Kid.md' }),
+          await createNote({ content: '# Aunt\n', path: 'API Aunt.md' })
+        ];
+        try {
+          await configureCommunityPlugin({
+            app,
+            pluginId,
+            settings: { relationDefinitions: ['parent <-> child', 'spouse <-> spouse', 'sibling <-> sibling', 'aunt = parent -> sibling'] }
+          });
+          await waitUntil({ predicate: () => api.getDerivedRelations('API Kid.md').length === 1 });
+          return api.getDerivedRelations('API Kid.md', { label: 'aunt' });
+        } finally {
+          await configureCommunityPlugin({ app, pluginId, settings: { relationDefinitions: ['parent <-> child', 'spouse <-> spouse', 'sibling <-> sibling'] } });
+          // The vault is shared by every suite in this worker, and the index suite counts every relation in it.
+          for (const note of notes) {
+            await app.fileManager.trashFile(note);
+          }
+        }
+      },
+      input: { pluginId: PLUGIN_ID }
+    });
+
+    expect(result).toEqual([
+      {
+        isTargetResolved: true,
+        label: 'aunt',
+        sourcePath: 'API Kid.md',
+        steps: [
+          expect.objectContaining({ direction: 'incoming', label: 'parent', sourcePath: 'API Dad.md', targetPath: 'API Kid.md' }),
+          expect.objectContaining({ direction: 'outgoing', label: 'sibling', sourcePath: 'API Dad.md', targetPath: 'API Aunt.md' })
+        ],
+        targetPath: 'API Aunt.md'
+      }
+    ]);
+  });
 });

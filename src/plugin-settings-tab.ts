@@ -23,7 +23,11 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
           appendCodeBlock(fragment, 'spouse <-> spouse');
           fragment.appendText(' is a symmetric label. A lone ');
           appendCodeBlock(fragment, 'mentions');
-          fragment.appendText(' has no inverse, so it is shown as itself from both ends, like every label not listed here. Inverse labels are never written into your notes.');
+          fragment.appendText(' has no inverse, so it is shown as itself from both ends, like every label not listed here. ');
+          appendCodeBlock(fragment, 'aunt = parent -> sibling');
+          fragment.appendText(' is a rule: a note\'s parent\'s sibling is shown as its aunt. Separate alternative chains with ');
+          appendCodeBlock(fragment, '|');
+          fragment.appendText('. Inverse labels and derived relations are never written into your notes.');
         }),
         name: 'Relation registry',
         render: (setting) => {
