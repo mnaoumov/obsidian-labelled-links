@@ -271,7 +271,18 @@ export async function setRelationDefinitions(app: App, relationDefinitions: stri
  * Manual equivalent: restore the default lines in the same field in the settings tab.
  */
 export async function resetRelationDefinitions(app: App): Promise<void> {
+  await configureCommunityPlugin({ app, pluginId: PLUGIN_ID, settings: { includedPresets: [] } });
   await setRelationDefinitions(app, DEFAULT_RELATION_DEFINITIONS);
+}
+
+/**
+ * Includes the bundled Family preset, so its pairs, rules and label variants apply after the user's own registry.
+ *
+ * Manual equivalent: switch on **Family preset** in **Settings -> Community plugins -> Labelled Links**.
+ */
+export async function includeFamilyPreset(app: App): Promise<void> {
+  await configureCommunityPlugin({ app, pluginId: PLUGIN_ID, settings: { includedPresets: ['family'] } });
+  new Notice('The Family preset is included. It is live -- no reload needed.');
 }
 
 /**

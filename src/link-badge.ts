@@ -25,7 +25,7 @@ export const LINK_BADGE_CLASS = 'labelled-links-badge';
  */
 export interface LinkBadge {
   /**
-   * The label written in the source note.
+   * The label written in the source note, or the variant the target note's property picks for it.
    */
   readonly label: string;
 
@@ -70,12 +70,13 @@ export function getLinkBadge(relationIndex: RelationIndexComponent, relation: Re
 
   const sourceName = getNoteName(relation.sourcePath);
   const targetName = relation.isTargetResolved ? getNoteName(relation.targetPath) : relation.targetPath;
+  const shownLabel = relationIndex.getShownLabel(label, relation.targetPath);
   const inverseLabel = relationIndex.getInverseLabel(label);
   const inverseLine = inverseLabel === null
     ? `No inverse label is registered for "${label}".`
-    : formatRelationSentence({ label: inverseLabel, sourceName: targetName, targetName: sourceName });
+    : formatRelationSentence({ label: relationIndex.getShownLabel(inverseLabel, relation.sourcePath), sourceName: targetName, targetName: sourceName });
 
-  return { label, tooltip: `${formatRelationSentence({ label, sourceName, targetName })}\n${inverseLine}` };
+  return { label: shownLabel, tooltip: `${formatRelationSentence({ label: shownLabel, sourceName, targetName })}\n${inverseLine}` };
 }
 
 /**

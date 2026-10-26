@@ -36,6 +36,22 @@ describe('PluginSettingsComponent', () => {
     expect(registry.getRule('boss')?.chains).toStrictEqual([['employer', 'employer']]);
   });
 
+  it('includes no preset by default', async () => {
+    const component = createComponent(undefined);
+    await component.loadWithPromises();
+    expect(component.settings.includedPresets).toStrictEqual([]);
+  });
+
+  it('reads an included preset\'s lines after the user\'s, so the user\'s line wins', async () => {
+    const component = createComponent({ includedPresets: ['family'], relationDefinitions: ['parent <-> kid'] });
+    await component.loadWithPromises();
+    const registry = component.createRelationRegistry();
+    expect(registry.getInverseLabel('parent')).toBe('kid');
+    expect(registry.getInverseLabel('birthParent')).toBe('birthChild');
+    expect(registry.getRule('grandparent')?.chains).toStrictEqual([['parent', 'parent']]);
+    expect(registry.getShownLabel('parent', { gender: 'male' })).toBe('father');
+  });
+
   it('rejects a registry with a malformed or repeated line, naming each one', async () => {
     const component = createComponent(undefined);
     await component.loadWithPromises();

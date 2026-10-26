@@ -20,6 +20,7 @@ describe('parseRelationDefinitions', () => {
         { inverseLabel: null, label: 'mentions' }
       ],
       errors: [],
+      labelVariants: [],
       rules: [],
       subLabels: []
     });
@@ -29,6 +30,7 @@ describe('parseRelationDefinitions', () => {
     expect(parseRelationDefinitions(['sibling <-> sibling', 'sibling = parent -> child', 'in-law = spouse -> sibling | sibling->spouse'])).toStrictEqual({
       definitions: [{ inverseLabel: 'sibling', label: 'sibling' }],
       errors: [],
+      labelVariants: [],
       rules: [
         { chains: [['parent', 'child']], label: 'sibling' },
         { chains: [['spouse', 'sibling'], ['sibling', 'spouse']], label: 'in-law' }
@@ -109,6 +111,7 @@ describe('parseRelationDefinitions sub-labels', () => {
     expect(parseRelationDefinitions(['mother <-> child', ' birthMother<mother ', 'grandmother = parent -> mother', 'birthMother < parent'])).toStrictEqual({
       definitions: [{ inverseLabel: 'child', label: 'mother' }],
       errors: [],
+      labelVariants: [],
       rules: [{ chains: [['parent', 'mother']], label: 'grandmother' }],
       subLabels: [
         { label: 'birthMother', superLabel: 'mother' },
@@ -235,6 +238,68 @@ describe('RelationRegistry', () => {
     expect(withRules.getRule('parent')).toBeNull();
     expect(withRules.getRules().map((rule) => rule.label)).toStrictEqual(['aunt', 'cousin']);
     expect(registry.hasRules).toBe(false);
+  });
+});
+
+describe('parseRelationDefinitions label variants', () => {
+  it('parses a variant line beside a pair defining the same label', () => {
+    const result = parseRelationDefinitions(['parent <-> child', ' parent@ gender :female->mother,  male -> father ']);
+    expect(result.errors).toStrictEqual([]);
+    expect(result.labelVariants).toStrictEqual([
+      { label: 'parent', propertyName: 'gender', variants: [{ label: 'mother', value: 'female' }, { label: 'father', value: 'male' }] }
+    ]);
+  });
+
+  it.each([
+    ['parent @ gender'],
+    ['parent @ : female -> mother'],
+    ['@ gender: female -> mother'],
+    ['parent @ gender: female'],
+    ['parent @ gender: female -> mother,'],
+    ['parent @ gender: -> mother'],
+    ['parent @ gender: female -> mother, female -> mum'],
+    ['parent @ gender: female -> mother:x'],
+    ['par<ent @ gender: female -> mother'],
+    ['parent @ gen@der: female -> mother']
+  ])('rejects the malformed variant line %j', (line) => {
+    const result = parseRelationDefinitions([line]);
+    expect(result.labelVariants).toStrictEqual([]);
+    expect(result.errors).toStrictEqual([`"${line}" is not a label variant line. Write "label @ property: value -> variant, value -> variant".`]);
+  });
+
+  it('rejects the variants of a label defined twice, ignoring case, keeping the first line', () => {
+    const result = parseRelationDefinitions(['parent @ gender: female -> mother', 'Parent @ sex: f -> mum']);
+    expect(result.labelVariants.map((variants) => variants.propertyName)).toStrictEqual(['gender']);
+    expect(result.errors).toStrictEqual(['"Parent @ sex: f -> mum" defines the variants of "Parent" again. Each label\'s variants can be defined once.']);
+  });
+});
+
+describe('RelationRegistry label variants', () => {
+  const { definitions, labelVariants } = parseRelationDefinitions(['parent <-> child', 'parent @ Gender: Female -> mother, male -> father']);
+  const registry = new RelationRegistry(definitions, [], [], labelVariants);
+
+  it('says whether it holds variants, and answers a label\'s variants ignoring case', () => {
+    expect(registry.hasLabelVariants).toBe(true);
+    expect(new RelationRegistry(definitions).hasLabelVariants).toBe(false);
+    expect(registry.getLabelVariants(' PARENT ')?.propertyName).toBe('Gender');
+    expect(registry.getLabelVariants('child')).toBeNull();
+  });
+
+  it.each([
+    [{ gender: 'female' }, 'mother'],
+    [{ GENDER: 'MALE' }, 'father'],
+    [{ gender: ['other', 'male'] }, 'father'],
+    [{ gender: 'other' }, 'parent'],
+    [{ gender: 1 }, 'parent'],
+    [{ sex: 'female' }, 'parent'],
+    [null, 'parent'],
+    [undefined, 'parent']
+  ])('shows a parent described by %j as %j', (frontmatter, shownLabel) => {
+    expect(registry.getShownLabel('Parent', frontmatter)).toBe(shownLabel === 'parent' ? 'Parent' : shownLabel);
+  });
+
+  it('shows a label with no variants as itself', () => {
+    expect(registry.getShownLabel('child', { gender: 'female' })).toBe('child');
   });
 });
 

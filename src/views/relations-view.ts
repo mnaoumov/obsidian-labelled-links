@@ -156,13 +156,13 @@ export class RelationsView extends ItemView {
     this.renderSection({
       containerEl: contentEl,
       file,
-      groups: this.groupByLabel(labelled.filter((relation) => relation.direction === RelationDirection.Outgoing)),
+      groups: this.groupByLabel(labelled.filter((relation) => relation.direction === RelationDirection.Outgoing), getOtherPath),
       title: 'Outgoing'
     });
     this.renderSection({
       containerEl: contentEl,
       file,
-      groups: this.groupByLabel(labelled.filter((relation) => relation.direction === RelationDirection.Incoming)),
+      groups: this.groupByLabel(labelled.filter((relation) => relation.direction === RelationDirection.Incoming), getOtherPath),
       title: 'Incoming'
     });
     this.renderDerivedSection({
@@ -242,18 +242,21 @@ export class RelationsView extends ItemView {
 
   /**
    * Groups labelled relations by label, ignoring case, in label order. In the wide meaning a relation goes in the
-   * group of each widest superset of its label instead. A group is titled with the spelling its first relation
-   * uses, or with the superset's spelling.
+   * group of each widest superset of its label instead. A label with variants is grouped under the variant the
+   * described note picks, so `parent` splits into `mother` and `father`. A group is titled with the spelling its
+   * first relation uses, or with the superset's spelling.
    *
    * @typeParam T - The type of the relations.
    * @param relations - The relations, every one with a label.
+   * @param getDescribedPath - Gets the path of the note a relation's label describes.
    * @returns The groups.
    */
-  private groupByLabel<T extends Labelled>(relations: readonly T[]): RelationGroup<T>[] {
+  private groupByLabel<T extends Labelled>(relations: readonly T[], getDescribedPath: (relation: T) => string): RelationGroup<T>[] {
     const groups = new Map<string, RelationGroup<T>>();
     for (const relation of relations) {
-      const groupLabels = this.shouldIncludeSubLabels ? this.relationIndex.getRootLabels(relation.label) : [relation.label];
-      for (const groupLabel of groupLabels) {
+      const labels = this.shouldIncludeSubLabels ? this.relationIndex.getRootLabels(relation.label) : [relation.label];
+      for (const label of labels) {
+        const groupLabel = this.relationIndex.getShownLabel(label, getDescribedPath(relation));
         const key = normalizeLabel(groupLabel);
         let group = groups.get(key);
         if (!group) {
@@ -295,7 +298,7 @@ export class RelationsView extends ItemView {
     const sectionEl = containerEl.createDiv({ cls: 'labelled-links-relations-section' });
     sectionEl.createDiv({ cls: 'labelled-links-relations-section-title', text: 'Derived' });
 
-    for (const group of this.groupByLabel(relations)) {
+    for (const group of this.groupByLabel(relations, (relation) => relation.targetPath)) {
       const groupEl = sectionEl.createDiv({ cls: 'labelled-links-relations-group' });
       groupEl.dataset['label'] = group.label;
       groupEl.createDiv({ cls: 'labelled-links-relations-group-title', text: group.label });
@@ -304,11 +307,18 @@ export class RelationsView extends ItemView {
         this.renderLink({ containerEl: rowEl, file, isResolved: relation.isTargetResolved, otherPath: relation.targetPath });
 
         const sourceName = getNoteName(relation.sourcePath);
-        const sentence = formatRelationSentence({ label: relation.label, sourceName, targetName: getNoteName(relation.targetPath) });
+        const sentence = formatRelationSentence({
+          label: this.relationIndex.getShownLabel(relation.label, relation.targetPath),
+          sourceName,
+          targetName: getNoteName(relation.targetPath)
+        });
         const sentenceEl = rowEl.createSpan({ cls: 'labelled-links-relation-sentence', text: sentence });
         const derivation = formatDerivation({
           sourceName,
-          steps: relation.steps.map((step) => ({ label: ensureNonNullable(step.label), targetName: getNoteName(getOtherPath(step)) }))
+          steps: relation.steps.map((step) => ({
+            label: this.relationIndex.getShownLabel(ensureNonNullable(step.label), getOtherPath(step)),
+            targetName: getNoteName(getOtherPath(step))
+          }))
         });
         const tooltip = `${sentence}: ${derivation}`;
         sentenceEl.setAttribute('aria-label', tooltip);
@@ -345,11 +355,13 @@ export class RelationsView extends ItemView {
     const isResolved = relation.direction === RelationDirection.Incoming || relation.isTargetResolved;
 
     const rowEl = containerEl.createDiv({ cls: 'labelled-links-relation' });
-    this.renderLink({ containerEl: rowEl, file, isResolved, otherPath: getOtherPath(relation) });
+    const otherPath = getOtherPath(relation);
+    this.renderLink({ containerEl: rowEl, file, isResolved, otherPath });
 
     // In a superset's group, an outgoing row names its own label, which no sentence spells out.
-    if (relation.direction === RelationDirection.Outgoing && relation.label !== null && normalizeLabel(relation.label) !== normalizeLabel(groupLabel)) {
-      rowEl.createSpan({ cls: 'labelled-links-relation-sub-label', text: relation.label });
+    const shownLabel = relation.label === null ? null : this.relationIndex.getShownLabel(relation.label, otherPath);
+    if (relation.direction === RelationDirection.Outgoing && shownLabel !== null && normalizeLabel(shownLabel) !== normalizeLabel(groupLabel)) {
+      rowEl.createSpan({ cls: 'labelled-links-relation-sub-label', text: shownLabel });
     }
 
     // An incoming label describes the active note, not the row's: Alice's `child:: [[Bob]]` makes Bob the child.
@@ -359,7 +371,7 @@ export class RelationsView extends ItemView {
       const sourceName = getNoteName(relation.sourcePath);
       const sentenceEl = rowEl.createSpan({
         cls: 'labelled-links-relation-sentence',
-        text: formatRelationSentence({ label, sourceName, targetName: getNoteName(file.path) })
+        text: formatRelationSentence({ label: this.relationIndex.getShownLabel(label, file.path), sourceName, targetName: getNoteName(file.path) })
       });
       const tooltip = formatWrittenRelation({ label, labelForm: relation.labelForm, original: relation.reference.original, sourceName });
       sentenceEl.setAttribute('aria-label', tooltip);
