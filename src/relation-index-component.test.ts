@@ -155,6 +155,62 @@ describe('RelationIndexComponent derived relations', () => {
   });
 });
 
+const SUB_LABEL_FILES = {
+  'Birth.md': '---\nmother: "[[Birth Gran]]"\n---\n',
+  'Birth Gran.md': '',
+  'Gran.md': '',
+  'Kid.md': '---\nmother: "[[Mom]]"\nbirthMother: "[[Birth]]"\n---\nSee [[Gran]].\n',
+  'Mom.md': '---\nmother: "[[Gran]]"\n---\n'
+};
+
+const SUB_LABEL_DEFINITIONS = [
+  'mother <-> child',
+  'birthMother < mother',
+  'grandmother = mother -> mother',
+  'birthGrandmother = birthMother -> mother',
+  'birthGrandmother < grandmother'
+];
+
+async function createSubLabelIndex(): Promise<IndexFixture> {
+  const fixture = await createIndex(SUB_LABEL_FILES);
+  const { definitions, rules, subLabels } = parseRelationDefinitions(SUB_LABEL_DEFINITIONS);
+  fixture.index.setRegistry(new RelationRegistry(definitions, rules, subLabels));
+  return fixture;
+}
+
+describe('RelationIndexComponent sub-labels', () => {
+  it('returns only the label it is asked for by default, and its sub-labels too when asked', async () => {
+    const { index } = await createSubLabelIndex();
+    expect(index.getRelations('Kid.md', { label: 'mother' }).map((relation) => relation.targetPath)).toStrictEqual(['Mom.md']);
+    expect(index.getRelations('Kid.md', { includeSubLabels: true, label: 'MOTHER' }).map((relation) => relation.targetPath)).toStrictEqual(['Mom.md', 'Birth.md']);
+    expect(index.getRelations('Kid.md', { includeSubLabels: true, label: null }).map((relation) => relation.targetPath)).toStrictEqual(['Gran.md']);
+  });
+
+  it('labels an incoming sub-label link with its superset\'s inverse', async () => {
+    const { index } = await createSubLabelIndex();
+    expect(summarize(index.getRelations('Birth.md', { label: 'child' }))).toStrictEqual([
+      { direction: RelationDirection.Incoming, isTargetResolved: true, label: 'child', linkLabel: 'birthMother', sourcePath: 'Kid.md', targetPath: 'Birth.md' }
+    ]);
+  });
+
+  it('answers the widest superset labels of a label from the registry', async () => {
+    const { index } = await createSubLabelIndex();
+    expect(index.getRootLabels('birthGrandmother')).toStrictEqual(['grandmother']);
+  });
+
+  it('derives through sub-labels and includes sub-label rules only when asked', async () => {
+    const { index } = await createSubLabelIndex();
+    expect(summarizeDerived(index.getDerivedRelations('Kid.md', { label: 'grandmother' }))).toStrictEqual([
+      { isTargetResolved: true, label: 'grandmother', steps: ['Kid.md mother Mom.md', 'Mom.md mother Gran.md'], targetPath: 'Gran.md' }
+    ]);
+    expect(summarizeDerived(index.getDerivedRelations('Kid.md', { includeSubLabels: true, label: 'grandmother' }))).toStrictEqual([
+      { isTargetResolved: true, label: 'grandmother', steps: ['Kid.md mother Mom.md', 'Mom.md mother Gran.md'], targetPath: 'Gran.md' },
+      { isTargetResolved: true, label: 'grandmother', steps: ['Kid.md birthMother Birth.md', 'Birth.md mother Birth Gran.md'], targetPath: 'Birth Gran.md' },
+      { isTargetResolved: true, label: 'birthGrandmother', steps: ['Kid.md birthMother Birth.md', 'Birth.md mother Birth Gran.md'], targetPath: 'Birth Gran.md' }
+    ]);
+  });
+});
+
 describe('RelationIndexComponent', () => {
   it('lists a note\'s outgoing relations and plain links, unresolved targets included', async () => {
     const { index } = await createIndex();

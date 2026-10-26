@@ -27,7 +27,10 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
           appendCodeBlock(fragment, 'aunt = parent -> sibling');
           fragment.appendText(' is a rule: a note\'s parent\'s sibling is shown as its aunt. Separate alternative chains with ');
           appendCodeBlock(fragment, '|');
-          fragment.appendText('. Inverse labels and derived relations are never written into your notes.');
+          fragment.appendText('. ');
+          appendCodeBlock(fragment, 'birthMother < mother');
+          fragment.appendText(' makes a label a kind of another: a query for mother can ask to include birthMother links too. ');
+          fragment.appendText('Inverse labels and derived relations are never written into your notes.');
         }),
         name: 'Relation registry',
         render: (setting) => {

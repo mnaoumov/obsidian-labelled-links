@@ -40,7 +40,7 @@ export interface LabelledLinksApi {
    * A fresh array of fresh objects on each call, so writing to them changes nothing here.
    *
    * @param pathOrFile - The note, or the path an unresolved link names.
-   * @param options - Filters by rule label.
+   * @param options - Filters by rule label, and whether labels take their wide meaning.
    * @returns The derived relations, in rule order.
    */
   getDerivedRelations: (pathOrFile: string | TFile, options?: LabelledLinksGetDerivedRelationsOptions) => LabelledLinksDerivedRelation[];
@@ -61,7 +61,7 @@ export interface LabelledLinksApi {
    * A fresh array of fresh objects on each call, so writing to them changes nothing here.
    *
    * @param pathOrFile - The note, or the path an unresolved link names.
-   * @param options - Filters by direction and label.
+   * @param options - Filters by direction and label, and whether the label takes its wide meaning.
    * @returns The relations, outgoing first.
    */
   getRelations: (pathOrFile: string | TFile, options?: LabelledLinksGetRelationsOptions) => LabelledLinksRelation[];
@@ -107,6 +107,15 @@ export interface LabelledLinksDerivedRelation {
  */
 export interface LabelledLinksGetDerivedRelationsOptions {
   /**
+   * Whether to take every label in the query in its wide meaning: the `label` filter also matches the rules
+   * whose labels the definitions declare as kinds of it (`label < superLabel`), and each step of a rule's chain
+   * also follows the stored relations whose labels are kinds of the step's label. A step still follows another
+   * rule by its exact label only. `false` when omitted, so `grandmother = parent -> mother` follows `mother`
+   * links only, and with it also `birthMother` links after `birthMother < mother`.
+   */
+  readonly includeSubLabels?: boolean;
+
+  /**
    * Only the relations this rule label derives, compared ignoring case. All when omitted.
    */
   readonly label?: string;
@@ -120,6 +129,13 @@ export interface LabelledLinksGetRelationsOptions {
    * Only the relations in this direction. Both when omitted.
    */
   readonly direction?: LabelledLinksRelationDirection;
+
+  /**
+   * Whether the `label` filter also matches the labels the definitions declare as kinds of it, through one or
+   * more `label < superLabel` lines: after `birthMother < mother`, a query for `mother` also returns the
+   * `birthMother` relations. `false` when omitted, so a query returns the label it names and nothing else.
+   */
+  readonly includeSubLabels?: boolean;
 
   /**
    * Only the relations with this label as seen from the queried note, compared ignoring case; `null` for the

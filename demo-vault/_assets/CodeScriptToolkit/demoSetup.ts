@@ -34,11 +34,13 @@ interface LabelledLinksDerivedRelation {
 }
 
 interface LabelledLinksGetDerivedRelationsOptions {
+  readonly includeSubLabels?: boolean;
   readonly label?: string;
 }
 
 interface LabelledLinksGetRelationsOptions {
   readonly direction?: 'incoming' | 'outgoing';
+  readonly includeSubLabels?: boolean;
   readonly label?: null | string;
 }
 
@@ -64,6 +66,7 @@ const DATAVIEW_PLUGIN_ID = 'dataview';
 
 const DEFAULT_RELATION_DEFINITIONS = ['parent <-> child', 'spouse <-> spouse', 'sibling <-> sibling'];
 const COMPOSITION_RULES = ['aunt = parent -> sibling', 'sibling-in-law = spouse -> sibling | sibling -> spouse'];
+const SUB_LABELS = ['mentor < teacher'];
 const NOTICE_DURATION_IN_MILLISECONDS = 10000;
 const RELATIONS_CHANGED_EVENT_NAME = 'labelled-links:relations-changed';
 
@@ -282,9 +285,19 @@ export async function addCompositionRules(app: App): Promise<void> {
   await setRelationDefinitions(app, [...DEFAULT_RELATION_DEFINITIONS, ...COMPOSITION_RULES]);
 }
 
+/**
+ * Adds a sub-label to the default registry: `mentor < teacher`, so a query for `teacher` can ask to include the
+ * `mentor` links too.
+ *
+ * Manual equivalent: add the line `mentor < teacher` to **Relation registry** in the settings tab.
+ */
+export async function addSubLabels(app: App): Promise<void> {
+  await setRelationDefinitions(app, [...DEFAULT_RELATION_DEFINITIONS, ...SUB_LABELS]);
+}
+
 function getApi(app: App): LabelledLinksApi | null {
   const labelledLinksApi = findPluginApi<LabelledLinksApi>({
-    apiVersionRange: '^1.1.0',
+    apiVersionRange: '^1.2.0',
     pluginId: PLUGIN_ID
   });
   if (!labelledLinksApi) {

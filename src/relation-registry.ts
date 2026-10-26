@@ -37,6 +37,11 @@ export interface ParseRelationDefinitionsResult {
    * The composition rules parsed from the valid rule lines.
    */
   readonly rules: CompositionRule[];
+
+  /**
+   * The sub-labels parsed from the valid `sub < super` lines.
+   */
+  readonly subLabels: SubLabelDefinition[];
 }
 
 /**
@@ -56,6 +61,22 @@ export interface RelationDefinition {
 }
 
 /**
+ * A `sub < super` line of the registry: `birthMother < mother` makes every `birthMother` link a kind of `mother`
+ * link, which a query includes when it asks for the wide meaning of `mother`.
+ */
+export interface SubLabelDefinition {
+  /**
+   * The narrower label.
+   */
+  readonly label: string;
+
+  /**
+   * The wider label it is a kind of.
+   */
+  readonly superLabel: string;
+}
+
+/**
  * The most links a rule may chain once the rules it names are expanded, which bounds every walk over the notes.
  */
 export const MAX_RULE_LENGTH = 8;
@@ -68,13 +89,17 @@ const RULE_SEPARATOR = '=';
 
 const RULE_REG_EXP = /^(?<label>[^=]+?)\s*=\s*(?<chains>[^=]+)$/u;
 
+const SUB_LABEL_SEPARATOR = '<';
+
+const SUB_LABEL_REG_EXP = /^(?<label>[^<]+?)\s*<\s*(?<superLabel>[^<]+)$/u;
+
 const CHAIN_SEPARATOR = '|';
 
 const STEP_SEPARATOR = '->';
 
 /**
- * The relation registry: which label is the inverse of which, and which labels are derived by composition rules.
- * Lookups ignore case, the way Obsidian treats property names.
+ * The relation registry: which label is the inverse of which, which labels are derived by composition rules, and
+ * which labels are kinds of other labels. Lookups ignore case, the way Obsidian treats property names.
  */
 export class RelationRegistry {
   /**
@@ -88,15 +113,21 @@ export class RelationRegistry {
 
   private readonly inverseLabels = new Map<string, null | string>();
   private readonly rules = new Map<string, CompositionRule>();
+  private readonly superLabels = new Map<string, string[]>();
 
   /**
    * Creates a registry from parsed definitions. A pair registers both directions, so `employee <-> employer`
    * also answers `employer`.
    *
+   * A sub-label with no pair of its own takes the inverse of its nearest superset that has one, and when both
+   * have pairs the inverse sub-label is implied: `birthMother < mother` with `birthMother <-> birthChild` and
+   * `mother <-> child` also makes `birthChild` a kind of `child`.
+   *
    * @param definitions - The definitions, as {@link parseRelationDefinitions} returns them.
    * @param rules - The composition rules, as {@link parseRelationDefinitions} returns them.
+   * @param subLabels - The sub-labels, as {@link parseRelationDefinitions} returns them.
    */
-  public constructor(definitions: readonly RelationDefinition[], rules: readonly CompositionRule[] = []) {
+  public constructor(definitions: readonly RelationDefinition[], rules: readonly CompositionRule[] = [], subLabels: readonly SubLabelDefinition[] = []) {
     for (const definition of definitions) {
       this.register(definition.label, definition.inverseLabel);
       if (definition.inverseLabel !== null) {
@@ -106,6 +137,25 @@ export class RelationRegistry {
 
     for (const rule of rules) {
       this.rules.set(normalizeLabel(rule.label), rule);
+    }
+
+    for (const subLabel of subLabels) {
+      this.addSuperLabel(subLabel.label, subLabel.superLabel);
+    }
+
+    for (const subLabel of subLabels) {
+      const inverseLabel = this.getInverseLabel(subLabel.label);
+      const inverseSuperLabel = this.getInverseLabel(subLabel.superLabel);
+      if (inverseLabel !== null && inverseSuperLabel !== null && !this.isLabelOrSubLabel(inverseSuperLabel, inverseLabel)) {
+        this.addSuperLabel(inverseLabel, inverseSuperLabel);
+      }
+    }
+
+    for (const subLabel of subLabels) {
+      const key = normalizeLabel(subLabel.label);
+      if (!this.inverseLabels.has(key)) {
+        this.inverseLabels.set(key, this.findInheritedInverseLabel(ensureNonNullable(this.superLabels.get(key))));
+      }
     }
   }
 
@@ -117,6 +167,32 @@ export class RelationRegistry {
    */
   public getInverseLabel(label: string): null | string {
     return this.inverseLabels.get(normalizeLabel(label)) ?? null;
+  }
+
+  /**
+   * Gets the widest labels a label is a kind of, following its superset labels up to the labels that have none.
+   *
+   * @param label - The label.
+   * @returns The top superset labels, as their lines write them, or the label itself when it has no superset.
+   */
+  public getRootLabels(label: string): string[] {
+    const roots = new Map<string, string>();
+    const visited = new Set<string>();
+    const pending = [label];
+    for (let current = pending.shift(); current !== undefined; current = pending.shift()) {
+      const key = normalizeLabel(current);
+      if (visited.has(key)) {
+        continue;
+      }
+      visited.add(key);
+      const superLabels = this.superLabels.get(key);
+      if (superLabels) {
+        pending.push(...superLabels);
+      } else {
+        roots.set(key, current);
+      }
+    }
+    return [...roots.values()];
   }
 
   /**
@@ -136,6 +212,61 @@ export class RelationRegistry {
    */
   public getRules(): CompositionRule[] {
     return [...this.rules.values()];
+  }
+
+  /**
+   * Checks whether a label is another label, ignoring case, or a kind of it through one or more `sub < super`
+   * lines.
+   *
+   * @param label - The label to check.
+   * @param superLabel - The wider label.
+   * @returns Whether it is.
+   */
+  public isLabelOrSubLabel(label: string, superLabel: string): boolean {
+    const superKey = normalizeLabel(superLabel);
+    const visited = new Set<string>();
+    const pending = [normalizeLabel(label)];
+    for (let key = pending.shift(); key !== undefined; key = pending.shift()) {
+      if (key === superKey) {
+        return true;
+      }
+      if (visited.has(key)) {
+        continue;
+      }
+      visited.add(key);
+      pending.push(...(this.superLabels.get(key) ?? []).map((nextSuperLabel) => normalizeLabel(nextSuperLabel)));
+    }
+    return false;
+  }
+
+  private addSuperLabel(label: string, superLabel: string): void {
+    const key = normalizeLabel(label);
+    let superLabels = this.superLabels.get(key);
+    if (!superLabels) {
+      superLabels = [];
+      this.superLabels.set(key, superLabels);
+    }
+    if (superLabels.every((existing) => normalizeLabel(existing) !== normalizeLabel(superLabel))) {
+      superLabels.push(superLabel);
+    }
+  }
+
+  private findInheritedInverseLabel(superLabels: readonly string[]): null | string {
+    const visited = new Set<string>();
+    const pending = [...superLabels];
+    for (let current = pending.shift(); current !== undefined; current = pending.shift()) {
+      const currentKey = normalizeLabel(current);
+      if (visited.has(currentKey)) {
+        continue;
+      }
+      visited.add(currentKey);
+      const inverseLabel = this.inverseLabels.get(currentKey);
+      if (inverseLabel !== undefined && inverseLabel !== null) {
+        return inverseLabel;
+      }
+      pending.push(...this.superLabels.get(currentKey) ?? []);
+    }
+    return null;
   }
 
   private register(label: string, inverseLabel: null | string): void {
@@ -160,9 +291,10 @@ export function normalizeLabel(label: string): string {
  * Parses the registry lines stored in the settings.
  *
  * @param lines - One definition per line: `label <-> inverse`, `label <-> label` for a symmetric label, a
- * lone `label` for a label with no inverse, or `label = step -> step | step` for a composition rule.
- * @returns The definitions and rules, and a message for each line that is malformed, redefines a label, or is
- * a rule that reaches itself or chains too many links.
+ * lone `label` for a label with no inverse, `label = step -> step | step` for a composition rule, or
+ * `label < superLabel` for a label that is a kind of another.
+ * @returns The definitions, rules and sub-labels, and a message for each line that is malformed, redefines a
+ * label, is a rule that reaches itself or chains too many links, or makes a label a kind of itself.
  */
 export function parseRelationDefinitions(lines: readonly string[]): ParseRelationDefinitionsResult {
   const definitions: RelationDefinition[] = [];
@@ -170,6 +302,7 @@ export function parseRelationDefinitions(lines: readonly string[]): ParseRelatio
   const definedLabels = new Set<string>();
   const ruleLines = new Map<string, string>();
   const rules = new Map<string, CompositionRule>();
+  const subLabels: SubLabelDefinition[] = [];
 
   for (const rawLine of lines) {
     const line = rawLine.trim();
@@ -192,6 +325,14 @@ export function parseRelationDefinitions(lines: readonly string[]): ParseRelatio
 
       rules.set(key, rule);
       ruleLines.set(key, line);
+      continue;
+    }
+
+    if (!line.includes(PAIR_SEPARATOR) && line.includes(SUB_LABEL_SEPARATOR)) {
+      const error = addSubLabel(line, subLabels);
+      if (error !== null) {
+        errors.push(error);
+      }
       continue;
     }
 
@@ -218,7 +359,36 @@ export function parseRelationDefinitions(lines: readonly string[]): ParseRelatio
     definitions.push(definition);
   }
 
-  return { definitions, errors: [...errors, ...validateRules(rules, ruleLines)], rules: [...rules.values()] };
+  return { definitions, errors: [...errors, ...validateRules(rules, ruleLines)], rules: [...rules.values()], subLabels };
+}
+
+/**
+ * Parses a `sub < super` line and adds it to the sub-labels parsed so far, unless it repeats one or makes a label
+ * a kind of itself.
+ *
+ * @param line - The trimmed line.
+ * @param subLabels - The sub-labels parsed so far. The new one is pushed to it.
+ * @returns A message when the line cannot be used, or `null` when it was added.
+ */
+function addSubLabel(line: string, subLabels: SubLabelDefinition[]): null | string {
+  const match = SUB_LABEL_REG_EXP.exec(line);
+  const label = match ? getMandatoryNamedGroup(match, 'label') : '';
+  const superLabel = match ? getMandatoryNamedGroup(match, 'superLabel') : '';
+  if (!isValidRuleLabel(label) || !isValidRuleLabel(superLabel)) {
+    return `"${line}" is not a sub-label. Write "label < superLabel".`;
+  }
+
+  if (subLabels.some((subLabel) => normalizeLabel(subLabel.label) === normalizeLabel(label) && normalizeLabel(subLabel.superLabel) === normalizeLabel(superLabel))) {
+    return `"${line}" makes "${label}" a kind of "${superLabel}" again.`;
+  }
+
+  const registry = new RelationRegistry([], [], subLabels);
+  if (registry.isLabelOrSubLabel(superLabel, label)) {
+    return `"${line}" makes "${label}" a kind of itself. A label cannot be its own superset, directly or through other labels.`;
+  }
+
+  subLabels.push({ label, superLabel });
+  return null;
 }
 
 /**

@@ -48,6 +48,7 @@ A copy of the vault ships with every release. You can access it via any of the f
 - **Every link-valued property, and every link in an inline field, is a relation**, labelled with the property or field name, with no setup. An inline field takes its whole line (`employer:: [[Acme]]`), or sits inside a sentence wrapped in brackets (`[employer:: [[Acme]]]` or `(employer:: [[Acme]])`). To label a link without the label showing, put it in a comment right after the link: `[[Acme]]%%:employer%%`. [01 Relations](<./demo-vault/01 Relations.md>)
 - **A relation registry** declares each label pair once: `parent <-> child`, a symmetric `spouse <-> spouse`, or a lone label with no inverse. The inverse is worked out in memory and never written into a note. [02 Settings](<./demo-vault/02 Settings.md>)
 - **Composition rules** derive the labels nobody should have to store: `aunt = parent -> sibling` shows Dan's sibling Carol as the aunt of Dan's daughter Erin, and `|` separates alternative chains (`sibling-in-law = spouse -> sibling | sibling -> spouse`). A step follows the inverse labels too, so `parent` reaches Erin's father through his `child` link. Derived relations are worked out when they are shown, never written into a note, and reach other plugins through the API. [02 Settings](<./demo-vault/02 Settings.md>)
+- **Sub-labels** make one label a kind of another: `birthMother < mother`. A query for `mother` returns only `mother` links by default, and with the `includeSubLabels` switch, or the pane's **Include sub-labels** button, it also returns the `birthMother` ones. It works for any vocabulary: `lineManager < manager`, `coAuthor < author`. [02 Settings](<./demo-vault/02 Settings.md>)
 - **The relations pane** lists every relation of the active note, outgoing, incoming and derived, grouped by label. Each incoming relation sits under its inverse label with a sentence saying which end the label describes (`Bob is Alice's child` under `parent` on Bob), and its tooltip shows the link as the source writes it. The plain links and backlinks come with the line each one sits on. [03 Relations pane](<./demo-vault/03 Relations pane.md>)
 - **A badge on each labelled link** shows its label in Live Preview and in Reading view, with a tooltip naming the relation in both directions (`Dan is Alice's spouse`, `Alice is Dan's spouse`). [04 Link badges](<./demo-vault/04 Link badges.md>)
 - **A typed API and a change event** let other plugins and scripts query a note's relations and hear when they change. [05 For plugin developers](<./demo-vault/05 For plugin developers.md>)
@@ -67,7 +68,7 @@ this.registerEvent(
 );
 ```
 
-For the relations themselves, take the API through the registry. The contract is **`1.1.0`** and moves independently of the plugin's own version, so ask for a range.
+For the relations themselves, take the API through the registry. The contract is **`1.2.0`** and moves independently of the plugin's own version, so ask for a range.
 
 Beside `api.d.ts`, [`api-contract.ts`](./api-contract.ts) holds the API's contract, `LABELLED_LINKS_API_CONTRACT`: for every method, a schema over its arguments and a schema over what it returns. It is the constant this plugin publishes with the API, so copy it next to `api.d.ts` and pass it as the `contract`, and both sides check the same definition. Besides `./api.d.ts` and `obsidian` it imports from one package, [`@mnaoumov/typescript-lib`](https://www.npmjs.com/package/@mnaoumov/typescript-lib), whose `api-contract` entry point carries the contract type, the [Standard Schema](https://standardschema.dev) builders and the common guards, so add that package to your project when you copy the file. (It is not named `api.ts`: TypeScript would read `api.d.ts` as that file's own declarations.)
 
@@ -79,7 +80,7 @@ import type { LabelledLinksApi } from './api.d.ts';
 import { LABELLED_LINKS_API_CONTRACT } from './api-contract.ts';
 
 const labelledLinksApiRef = watchPluginApi<LabelledLinksApi>({
-  apiVersionRange: '^1.1.0',
+  apiVersionRange: '^1.2.0',
   app: this.app,
   component: this,
   contract: LABELLED_LINKS_API_CONTRACT,
@@ -90,6 +91,8 @@ const labelledLinksApiRef = watchPluginApi<LabelledLinksApi>({
 const labelledLinksApi = labelledLinksApiRef.value;
 if (labelledLinksApi) {
   console.log(labelledLinksApi.getRelations('People/Alice.md', { direction: 'outgoing', label: 'child' }));
+  // With `birthMother < mother` in the registry, the `birthMother` links too.
+  console.log(labelledLinksApi.getRelations('People/Bob.md', { includeSubLabels: true, label: 'mother' }));
   console.log(labelledLinksApi.getInverseLabel('child'));
   console.log(labelledLinksApi.getDerivedRelations('People/Erin.md', { label: 'aunt' }));
 }

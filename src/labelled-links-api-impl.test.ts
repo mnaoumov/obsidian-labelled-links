@@ -31,8 +31,8 @@ async function createApi(): Promise<ApiFixture> {
   const app = App.createConfigured__({ files: FILES });
   const index = new RelationIndexComponent(app.asOriginalType__());
   index.load();
-  const { definitions, rules } = parseRelationDefinitions(['employee <-> employer', 'spouse <-> spouse', 'spouseEmployer = spouse -> employer']);
-  index.setRegistry(new RelationRegistry(definitions, rules));
+  const { definitions, rules, subLabels } = parseRelationDefinitions(['employee <-> employer', 'spouse <-> spouse', 'spouseEmployer = spouse -> employer', 'spouse < relative']);
+  index.setRegistry(new RelationRegistry(definitions, rules, subLabels));
   await index.rebuild();
   return { api: new LabelledLinksApiImpl(index), app, index };
 }
@@ -61,6 +61,8 @@ describe('LabelledLinksApiImpl', () => {
     expect(api.getRelations(alice, { direction: 'outgoing', label: 'EMPLOYEE' }).map((relation) => relation.targetPath)).toEqual(['Bob.md']);
     expect(api.getRelations(alice, { direction: 'incoming' })).toEqual([]);
     expect(api.getRelations('Bob.md', { label: null }).map((relation) => relation.sourcePath)).toEqual(['Alice.md']);
+    expect(api.getRelations('Bob.md', { label: 'relative' })).toEqual([]);
+    expect(api.getRelations('Bob.md', { includeSubLabels: true, label: 'relative' }).map((relation) => relation.sourcePath)).toEqual(['Carol.md']);
   });
 
   it('returns copies, so writing to them leaves the index untouched', async () => {

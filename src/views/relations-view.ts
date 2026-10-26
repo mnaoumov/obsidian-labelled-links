@@ -1,6 +1,7 @@
 import type {
   IconName,
   TFile,
+  ViewStateResult,
   WorkspaceLeaf
 } from 'obsidian';
 
@@ -70,6 +71,7 @@ interface RelationsViewRenderLinkParams {
 interface RelationsViewRenderRowParams {
   readonly containerEl: HTMLElement;
   readonly file: TFile;
+  readonly groupLabel: string;
   readonly relation: Relation;
 }
 
@@ -89,11 +91,17 @@ interface RelationsViewRenderSectionParams {
  * The relations the registry's composition rules derive follow, in a section of their own, each with the chain
  * that produced it in its tooltip. The pane follows the active note and redraws whenever the index reports a
  * change that touches it.
+ *
+ * A header button switches the pane to the wide meaning of each label: a relation whose label the registry declares
+ * as a kind of another (`birthMother < mother`) is listed in its widest superset's group, naming its own label,
+ * and the derived section follows the sub-labels too. The choice is kept in the pane's view state.
  */
 export class RelationsView extends ItemView {
   private file: null | TFile = null;
+  private includeSubLabelsActionEl: HTMLElement | null = null;
   private readonly relationIndex: RelationIndexComponent;
   private renderCount = 0;
+  private shouldIncludeSubLabels = false;
 
   /**
    * Creates the pane.
@@ -111,6 +119,10 @@ export class RelationsView extends ItemView {
 
   public override getIcon(): IconName {
     return 'arrow-right-left';
+  }
+
+  public override getState(): Record<string, unknown> {
+    return { ...super.getState(), includeSubLabels: this.shouldIncludeSubLabels };
   }
 
   public override getViewType(): string {
@@ -144,16 +156,20 @@ export class RelationsView extends ItemView {
     this.renderSection({
       containerEl: contentEl,
       file,
-      groups: groupByLabel(labelled.filter((relation) => relation.direction === RelationDirection.Outgoing)),
+      groups: this.groupByLabel(labelled.filter((relation) => relation.direction === RelationDirection.Outgoing)),
       title: 'Outgoing'
     });
     this.renderSection({
       containerEl: contentEl,
       file,
-      groups: groupByLabel(labelled.filter((relation) => relation.direction === RelationDirection.Incoming)),
+      groups: this.groupByLabel(labelled.filter((relation) => relation.direction === RelationDirection.Incoming)),
       title: 'Incoming'
     });
-    this.renderDerivedSection({ containerEl: contentEl, file, relations: this.relationIndex.getDerivedRelations(file) });
+    this.renderDerivedSection({
+      containerEl: contentEl,
+      file,
+      relations: this.relationIndex.getDerivedRelations(file, { includeSubLabels: this.shouldIncludeSubLabels })
+    });
 
     const unlabelled = relations.filter((relation) => relation.label === null);
     const snippetEls = this.renderSection({
@@ -186,13 +202,68 @@ export class RelationsView extends ItemView {
     await this.refresh();
   }
 
+  /**
+   * Switches the pane between the narrow and the wide meaning of each label.
+   *
+   * @param shouldIncludeSubLabels - Whether a sub-label's relations are listed in their widest superset's group.
+   */
+  public async setIncludeSubLabels(shouldIncludeSubLabels: boolean): Promise<void> {
+    this.shouldIncludeSubLabels = shouldIncludeSubLabels;
+    this.includeSubLabelsActionEl?.toggleClass('is-active', shouldIncludeSubLabels);
+    this.includeSubLabelsActionEl?.setAttribute('aria-pressed', String(shouldIncludeSubLabels));
+    await this.refresh();
+  }
+
+  public override async setState(state: unknown, result: ViewStateResult): Promise<void> {
+    await super.setState(state, result);
+    const shouldIncludeSubLabels = (state as null | Partial<Record<string, unknown>>)?.['includeSubLabels'];
+    if (typeof shouldIncludeSubLabels === 'boolean' && shouldIncludeSubLabels !== this.shouldIncludeSubLabels) {
+      await this.setIncludeSubLabels(shouldIncludeSubLabels);
+    }
+  }
+
   protected override async onOpen(): Promise<void> {
+    this.includeSubLabelsActionEl = this.addAction(
+      'list-tree',
+      'Include sub-labels',
+      convertAsyncToSync(async () => {
+        await this.setIncludeSubLabels(!this.shouldIncludeSubLabels);
+        this.app.workspace.requestSaveLayout();
+      })
+    );
+    this.includeSubLabelsActionEl.setAttribute('aria-pressed', String(this.shouldIncludeSubLabels));
     this.registerEvent(this.app.workspace.on('file-open', convertAsyncToSync(this.setFile.bind(this))));
     const eventRef = this.relationIndex.on('changed', convertAsyncToSync(this.handleIndexChanged.bind(this)));
     this.register(() => {
       this.relationIndex.offref(eventRef);
     });
     await this.setFile(this.app.workspace.getActiveFile());
+  }
+
+  /**
+   * Groups labelled relations by label, ignoring case, in label order. In the wide meaning a relation goes in the
+   * group of each widest superset of its label instead. A group is titled with the spelling its first relation
+   * uses, or with the superset's spelling.
+   *
+   * @typeParam T - The type of the relations.
+   * @param relations - The relations, every one with a label.
+   * @returns The groups.
+   */
+  private groupByLabel<T extends Labelled>(relations: readonly T[]): RelationGroup<T>[] {
+    const groups = new Map<string, RelationGroup<T>>();
+    for (const relation of relations) {
+      const groupLabels = this.shouldIncludeSubLabels ? this.relationIndex.getRootLabels(relation.label) : [relation.label];
+      for (const groupLabel of groupLabels) {
+        const key = normalizeLabel(groupLabel);
+        let group = groups.get(key);
+        if (!group) {
+          group = { label: groupLabel, relations: [] };
+          groups.set(key, group);
+        }
+        group.relations.push(relation);
+      }
+    }
+    return [...groups.values()].sort((a, b) => a.label.localeCompare(b.label));
   }
 
   private async handleIndexChanged(paths: null | readonly string[]): Promise<void> {
@@ -224,7 +295,7 @@ export class RelationsView extends ItemView {
     const sectionEl = containerEl.createDiv({ cls: 'labelled-links-relations-section' });
     sectionEl.createDiv({ cls: 'labelled-links-relations-section-title', text: 'Derived' });
 
-    for (const group of groupByLabel(relations)) {
+    for (const group of this.groupByLabel(relations)) {
       const groupEl = sectionEl.createDiv({ cls: 'labelled-links-relations-group' });
       groupEl.dataset['label'] = group.label;
       groupEl.createDiv({ cls: 'labelled-links-relations-group-title', text: group.label });
@@ -270,11 +341,16 @@ export class RelationsView extends ItemView {
   }
 
   private renderRow(params: RelationsViewRenderRowParams): HTMLElement {
-    const { containerEl, file, relation } = params;
+    const { containerEl, file, groupLabel, relation } = params;
     const isResolved = relation.direction === RelationDirection.Incoming || relation.isTargetResolved;
 
     const rowEl = containerEl.createDiv({ cls: 'labelled-links-relation' });
     this.renderLink({ containerEl: rowEl, file, isResolved, otherPath: getOtherPath(relation) });
+
+    // In a superset's group, an outgoing row names its own label, which no sentence spells out.
+    if (relation.direction === RelationDirection.Outgoing && relation.label !== null && normalizeLabel(relation.label) !== normalizeLabel(groupLabel)) {
+      rowEl.createSpan({ cls: 'labelled-links-relation-sub-label', text: relation.label });
+    }
 
     // An incoming label describes the active note, not the row's: Alice's `child:: [[Bob]]` makes Bob the child.
     // The group title alone does not say which end it describes, so the row spells it out.
@@ -308,7 +384,7 @@ export class RelationsView extends ItemView {
       groupEl.dataset['label'] = group.label;
       groupEl.createDiv({ cls: 'labelled-links-relations-group-title', text: group.label });
       for (const relation of group.relations) {
-        const rowEl = this.renderRow({ containerEl: groupEl, file, relation });
+        const rowEl = this.renderRow({ containerEl: groupEl, file, groupLabel: group.label, relation });
         if (relation.label === null) {
           snippetEls.set(relation, rowEl.createDiv({ cls: 'labelled-links-relation-snippet' }));
         }
@@ -327,27 +403,6 @@ export class RelationsView extends ItemView {
  */
 function getOtherPath(relation: Relation): string {
   return relation.direction === RelationDirection.Outgoing ? relation.targetPath : relation.sourcePath;
-}
-
-/**
- * Groups labelled relations by label, ignoring case, in label order. A group is titled with the spelling its
- * first relation uses.
- *
- * @param relations - The relations, every one with a label.
- * @returns The groups.
- */
-function groupByLabel<T extends Labelled>(relations: readonly T[]): RelationGroup<T>[] {
-  const groups = new Map<string, RelationGroup<T>>();
-  for (const relation of relations) {
-    const key = normalizeLabel(relation.label);
-    let group = groups.get(key);
-    if (!group) {
-      group = { label: relation.label, relations: [] };
-      groups.set(key, group);
-    }
-    group.relations.push(relation);
-  }
-  return [...groups.values()].sort((a, b) => a.label.localeCompare(b.label));
 }
 
 function isLabelledRelation(relation: Relation): relation is LabelledRelation {
