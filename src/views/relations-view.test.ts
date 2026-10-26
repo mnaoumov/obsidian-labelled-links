@@ -194,6 +194,77 @@ describe('RelationsView', () => {
     expect(derivedEls[1]?.querySelector('.labelled-links-relation-link')?.hasClass('is-unresolved')).toBe(true);
   });
 
+  it('lists sub-label relations in their widest superset\'s group, each naming its label, and derives through them', async () => {
+    const app = App.createConfigured__({
+      files: {
+        'Birth.md': '---\nmother: "[[Birth Gran]]"\n---\n',
+        'Birth Gran.md': '',
+        'Kid.md': '---\nmother: "[[Mom]]"\nbirthMother: "[[Birth]]"\nmentor: "[[Mom]]"\n---\n',
+        'Mom.md': ''
+      }
+    });
+    const index = new RelationIndexComponent(app.asOriginalType__());
+    index.load();
+    const { definitions, rules, subLabels } = parseRelationDefinitions(['mother <-> child', 'birthMother < mother', 'grandmother = mother -> mother']);
+    index.setRegistry(new RelationRegistry(definitions, rules, subLabels));
+    await index.rebuild();
+    const view = new RelationsView({ leaf: WorkspaceLeaf.create2__(app).asOriginalType3__(), relationIndex: index });
+    await view.setFile(getFile(app, 'Kid.md'));
+    expect(readPane(view)).toStrictEqual([
+      {
+        groups: [
+          { label: 'birthMother', rows: ['Birth'] },
+          { label: 'mentor', rows: ['Mom'] },
+          { label: 'mother', rows: ['Mom'] }
+        ],
+        title: 'Outgoing'
+      }
+    ]);
+
+    await view.setIncludeSubLabels(true);
+    expect(readPane(view)).toStrictEqual([
+      {
+        groups: [
+          { label: 'mentor', rows: ['Mom'] },
+          { label: 'mother', rows: ['Mom', 'Birth | birthMother'] }
+        ],
+        title: 'Outgoing'
+      },
+      { groups: [{ label: 'grandmother', rows: ['Birth Gran | Birth Gran is Kid\'s grandmother'] }], title: 'Derived' }
+    ]);
+  });
+
+  it('switches to the wide meaning from its header button, and keeps the choice in its view state', async () => {
+    const { app, view } = await createFixture();
+    const actionCallbacks: ((event_: MouseEvent) => unknown)[] = [];
+    const actionEl = createDiv();
+    vi.spyOn(view, 'addAction').mockImplementation((_icon, _title, callback) => {
+      actionCallbacks.push(callback);
+      return actionEl;
+    });
+    const requestSaveLayout = vi.spyOn(app.asOriginalType__().workspace, 'requestSaveLayout');
+    await WorkspaceLeaf.create2__(app).open(view);
+    expect(view.getState()).toMatchObject({ includeSubLabels: false });
+    expect(actionEl.getAttribute('aria-pressed')).toBe('false');
+
+    ensureNonNullable(actionCallbacks[0])(new MouseEvent('click'));
+    await vi.waitFor(() => {
+      expect(requestSaveLayout).toHaveBeenCalled();
+    });
+    expect(view.getState()).toMatchObject({ includeSubLabels: true });
+    expect(actionEl.hasClass('is-active')).toBe(true);
+    expect(actionEl.getAttribute('aria-pressed')).toBe('true');
+
+    const refresh = vi.spyOn(view, 'refresh');
+    await view.setState({ includeSubLabels: true }, { history: false });
+    await view.setState(null, { history: false });
+    expect(refresh).not.toHaveBeenCalled();
+    await view.setState({ includeSubLabels: false }, { history: false });
+    expect(refresh).toHaveBeenCalledTimes(1);
+    expect(view.getState()).toMatchObject({ includeSubLabels: false });
+    expect(actionEl.hasClass('is-active')).toBe(false);
+  });
+
   it('keeps the extension of a target that is not a note', async () => {
     const { app, view } = await createFixture();
     await view.setFile(getFile(app, 'Gallery.md'));

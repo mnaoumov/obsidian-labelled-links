@@ -40,7 +40,7 @@ export class LabelledLinksApiImpl implements LabelledLinksApi {
    * Gets the relations the composition rules derive for a note, as fresh plain objects.
    *
    * @param pathOrFile - The note, or the path an unresolved link names.
-   * @param options - Filters by rule label.
+   * @param options - Filters by rule label, and whether labels take their wide meaning.
    * @returns The derived relations, in rule order.
    */
   // eslint-disable-next-line typescript-dev-toolkit/params-options-name-match -- The options type is the published one from `api.d.ts`, which this class implements.
@@ -62,7 +62,7 @@ export class LabelledLinksApiImpl implements LabelledLinksApi {
    * Gets the relations of a note, as fresh plain objects.
    *
    * @param pathOrFile - The note, or the path an unresolved link names.
-   * @param options - Filters by direction and label.
+   * @param options - Filters by direction and label, and whether the label takes its wide meaning.
    * @returns The relations, outgoing first.
    */
   // eslint-disable-next-line typescript-dev-toolkit/params-options-name-match -- The options type is the published one from `api.d.ts`, which this class implements.
@@ -71,6 +71,7 @@ export class LabelledLinksApiImpl implements LabelledLinksApi {
       ...(options.direction !== undefined && {
         direction: options.direction === 'incoming' ? RelationDirection.Incoming : RelationDirection.Outgoing
       }),
+      ...(options.includeSubLabels !== undefined && { includeSubLabels: options.includeSubLabels }),
       ...(options.label !== undefined && { label: options.label })
     });
     return relations.map((relation) => toPublishedRelation(relation));

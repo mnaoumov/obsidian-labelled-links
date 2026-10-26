@@ -20,6 +20,8 @@ The pane has up to four sections:
 - **Derived** lists the relations the registry's composition rules work out, which no note stores. It is empty until you add a rule, as below.
 - **Unlabelled** holds the plain links (**Links**) and backlinks (**Backlinks**), each with the line it sits on, so you can tell why the link is there.
 
+The **Include sub-labels** button in the pane's header switches it to the wide meaning of each label: a relation whose label the registry declares as a kind of another (`mentor < teacher`) is listed under the widest label instead, tagged with its own, and the **Derived** section follows sub-labels too. The pane remembers the choice. [02 Settings](<./02 Settings.md>) has a button that adds such a line.
+
 Click a note in the pane to open it, with `Ctrl` / `Cmd` held to open it in a new tab. Hover over it for a page preview, also with `Ctrl` / `Cmd` held.
 
 ## Unlabelled links

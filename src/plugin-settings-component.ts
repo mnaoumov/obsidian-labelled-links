@@ -32,8 +32,8 @@ export class PluginSettingsComponent extends PluginSettingsComponentBase<PluginS
    * @returns The registry.
    */
   public createRelationRegistry(): RelationRegistry {
-    const { definitions, rules } = parseRelationDefinitions(this.settings.relationDefinitions);
-    return new RelationRegistry(definitions, rules);
+    const { definitions, rules, subLabels } = parseRelationDefinitions(this.settings.relationDefinitions);
+    return new RelationRegistry(definitions, rules, subLabels);
   }
 
   protected override registerValidators(): void {

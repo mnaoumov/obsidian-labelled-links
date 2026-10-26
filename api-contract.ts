@@ -69,6 +69,7 @@ const RELATION_GUARD = objectGuard<LabelledLinksRelation>({
 
 const GET_RELATIONS_OPTIONS_GUARD = optionsGuard<LabelledLinksGetRelationsOptions>({
   direction: DIRECTION_GUARD,
+  includeSubLabels: BOOLEAN_GUARD,
   label: NULLABLE_LABEL_GUARD
 }, { description: 'relation filters' });
 
@@ -81,6 +82,7 @@ const DERIVED_RELATION_GUARD = objectGuard<LabelledLinksDerivedRelation>({
 }, { description: 'a derived relation' });
 
 const GET_DERIVED_RELATIONS_OPTIONS_GUARD = optionsGuard<LabelledLinksGetDerivedRelationsOptions>({
+  includeSubLabels: BOOLEAN_GUARD,
   label: LABEL_GUARD
 }, { description: 'derived relation filters' });
 

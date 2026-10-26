@@ -139,7 +139,7 @@ import type { LabelledLinksApi } from './api.d.ts';
 import { LABELLED_LINKS_API_CONTRACT } from './api-contract.ts';
 
 const labelledLinksApiRef = watchPluginApi<LabelledLinksApi>({
-  apiVersionRange: '^1.1.0',
+  apiVersionRange: '^1.2.0',
   app: this.app,
   component: this,
   contract: LABELLED_LINKS_API_CONTRACT,

@@ -127,6 +127,13 @@ export interface Relation {
  */
 export interface RelationIndexComponentGetDerivedRelationsOptions {
   /**
+   * Whether to take every label in the query in its wide meaning: the `label` filter also matches the
+   * rules whose labels are kinds of it, and each step of a chain also follows the stored relations whose labels
+   * are kinds of the step's label. `false` when omitted.
+   */
+  readonly includeSubLabels?: boolean;
+
+  /**
    * Only the relations this rule label derives, compared ignoring case. All when omitted.
    */
   readonly label?: string;
@@ -140,6 +147,12 @@ export interface RelationIndexComponentGetRelationsOptions {
    * Only the relations in this direction. Both when omitted.
    */
   readonly direction?: RelationDirection;
+
+  /**
+   * Whether the `label` filter also matches the labels the registry declares as kinds of it, so `mother`
+   * also matches `birthMother` after `birthMother < mother`. `false` when omitted.
+   */
+  readonly includeSubLabels?: boolean;
 
   /**
    * Only the relations with this label as seen from the queried note, compared ignoring case; `null` for the
@@ -236,19 +249,24 @@ export class RelationIndexComponent extends LayoutReadyComponent {
    * relation with the same label to the same note, so it shows once, as stored. Two chains reaching the same
    * note give one relation, by the first chain.
    *
+   * A step follows a rule by its exact label only, even in the wide meaning, because a rule may name a superset of
+   * its own label, and widening rules there would walk forever.
+   *
    * @param pathOrFile - The note.
-   * @param options - Filters by rule label.
+   * @param options - Filters by rule label, and the wide meaning.
    * @returns The derived relations, in rule order.
    */
   public getDerivedRelations(pathOrFile: PathOrFile, options: RelationIndexComponentGetDerivedRelationsOptions = {}): DerivedRelation[] {
     this.ensureResolved();
     const sourcePath = getPath(this.app, pathOrFile);
-    const rules = options.label === undefined ? this.registry.getRules() : [this.registry.getRule(options.label)].filter((rule) => rule !== null);
+    const shouldIncludeSubLabels = options.includeSubLabels ?? false;
+    const { label } = options;
+    const rules = this.registry.getRules().filter((rule) => label === undefined || (shouldIncludeSubLabels ? this.registry.isLabelOrSubLabel(rule.label, label) : normalizeLabel(rule.label) === normalizeLabel(label)));
     const derivedRelations: DerivedRelation[] = [];
 
     for (const rule of rules) {
-      const storedPaths = new Set(this.followStoredLabel(sourcePath, rule.label).map((end) => end.path));
-      for (const end of this.followRule(sourcePath, rule.label)) {
+      const storedPaths = new Set(this.followStoredLabel(sourcePath, rule.label, shouldIncludeSubLabels).map((end) => end.path));
+      for (const end of this.followRule(sourcePath, rule.label, shouldIncludeSubLabels)) {
         if (!storedPaths.has(end.path)) {
           derivedRelations.push({
             isTargetResolved: end.isResolved,
@@ -278,7 +296,7 @@ export class RelationIndexComponent extends LayoutReadyComponent {
    * Gets the relations of a note.
    *
    * @param pathOrFile - The note, or the path an unresolved link names.
-   * @param options - Filters by direction and label.
+   * @param options - Filters by direction and label, and whether the label takes its wide meaning.
    * @returns The relations, outgoing first.
    */
   public getRelations(pathOrFile: PathOrFile, options: RelationIndexComponentGetRelationsOptions = {}): Relation[] {
@@ -302,8 +320,25 @@ export class RelationIndexComponent extends LayoutReadyComponent {
       return relations;
     }
 
-    const label = options.label === null ? null : normalizeLabel(options.label);
-    return relations.filter((relation) => (relation.label === null ? null : normalizeLabel(relation.label)) === label);
+    if (options.label === null) {
+      return relations.filter((relation) => relation.label === null);
+    }
+
+    const { label } = options;
+    return relations.filter((relation) =>
+      relation.label !== null
+      && (options.includeSubLabels ? this.registry.isLabelOrSubLabel(relation.label, label) : normalizeLabel(relation.label) === normalizeLabel(label))
+    );
+  }
+
+  /**
+   * Gets the widest labels a label is a kind of, from the current registry.
+   *
+   * @param label - The label.
+   * @returns The top superset labels, or the label itself when it has none.
+   */
+  public getRootLabels(label: string): string[] {
+    return this.registry.getRootLabels(label);
   }
 
   /**
@@ -403,11 +438,12 @@ export class RelationIndexComponent extends LayoutReadyComponent {
    *
    * @param path - The note the step starts at.
    * @param label - The step's label.
+   * @param shouldIncludeSubLabels - Whether the stored relations also include the labels that are kinds of it.
    * @returns The notes the step reaches.
    */
-  private followLabel(path: string, label: string): ChainEnd[] {
+  private followLabel(path: string, label: string, shouldIncludeSubLabels: boolean): ChainEnd[] {
     const ends = new Map<string, ChainEnd>();
-    for (const end of [...this.followStoredLabel(path, label), ...this.followRule(path, label)]) {
+    for (const end of [...this.followStoredLabel(path, label, shouldIncludeSubLabels), ...this.followRule(path, label, shouldIncludeSubLabels)]) {
       if (!ends.has(end.path)) {
         ends.set(end.path, end);
       }
@@ -420,10 +456,11 @@ export class RelationIndexComponent extends LayoutReadyComponent {
    *
    * @param path - The note the walk starts at.
    * @param label - The label.
+   * @param shouldIncludeSubLabels - Whether each step's stored relations also include the labels that are kinds of it.
    * @returns The notes the chains reach, once each by the first chain reaching it, with the stored relations that
    * reached them, or none when no rule derives the label.
    */
-  private followRule(path: string, label: string): ChainEnd[] {
+  private followRule(path: string, label: string, shouldIncludeSubLabels: boolean): ChainEnd[] {
     const rule = this.registry.getRule(label);
     if (!rule) {
       return [];
@@ -435,7 +472,7 @@ export class RelationIndexComponent extends LayoutReadyComponent {
       for (const step of chain) {
         const nextFrontier = new Map<string, ChainEnd>();
         for (const start of frontier) {
-          for (const end of this.followLabel(start.path, step)) {
+          for (const end of this.followLabel(start.path, step, shouldIncludeSubLabels)) {
             if (!nextFrontier.has(end.path)) {
               nextFrontier.set(end.path, { ...end, steps: [...start.steps, ...end.steps] });
             }
@@ -452,8 +489,8 @@ export class RelationIndexComponent extends LayoutReadyComponent {
     return [...ends.values()];
   }
 
-  private followStoredLabel(path: string, label: string): ChainEnd[] {
-    return this.getRelations(path, { label }).map((relation) =>
+  private followStoredLabel(path: string, label: string, shouldIncludeSubLabels: boolean): ChainEnd[] {
+    return this.getRelations(path, { includeSubLabels: shouldIncludeSubLabels, label }).map((relation) =>
       relation.direction === RelationDirection.Outgoing
         ? { isResolved: relation.isTargetResolved, path: relation.targetPath, steps: [relation] }
         : { isResolved: true, path: relation.sourcePath, steps: [relation] }

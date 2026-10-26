@@ -66,6 +66,7 @@ const GET_RELATIONS_INPUT: PayloadCases = {
     ['Alice.md', 'outgoing'],
     ['Alice.md', { direction: 'sideways' }],
     ['Alice.md', { label: 1 }],
+    ['Alice.md', { includeSubLabels: 'yes' }],
     ['Alice.md', {}, 'extra']
   ],
   valid: [
@@ -73,7 +74,8 @@ const GET_RELATIONS_INPUT: PayloadCases = {
     [alice],
     ['Alice.md', {}],
     ['Alice.md', { direction: 'incoming', label: null }],
-    ['Alice.md', { direction: 'outgoing', label: 'employee' }]
+    ['Alice.md', { direction: 'outgoing', label: 'employee' }],
+    ['Alice.md', { includeSubLabels: true, label: 'employee' }]
   ]
 };
 const RELATIONS: PayloadCases = {
@@ -95,13 +97,15 @@ const GET_DERIVED_RELATIONS_INPUT: PayloadCases = {
     [1],
     ['Alice.md', 'aunt'],
     ['Alice.md', { label: null }],
+    ['Alice.md', { includeSubLabels: 1 }],
     ['Alice.md', {}, 'extra']
   ],
   valid: [
     ['Alice.md'],
     [alice],
     ['Alice.md', {}],
-    ['Alice.md', { label: 'aunt' }]
+    ['Alice.md', { label: 'aunt' }],
+    ['Alice.md', { includeSubLabels: false, label: 'aunt' }]
   ]
 };
 const DERIVED_RELATIONS: PayloadCases = {

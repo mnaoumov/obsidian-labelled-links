@@ -20,7 +20,8 @@ describe('parseRelationDefinitions', () => {
         { inverseLabel: null, label: 'mentions' }
       ],
       errors: [],
-      rules: []
+      rules: [],
+      subLabels: []
     });
   });
 
@@ -31,7 +32,8 @@ describe('parseRelationDefinitions', () => {
       rules: [
         { chains: [['parent', 'child']], label: 'sibling' },
         { chains: [['spouse', 'sibling'], ['sibling', 'spouse']], label: 'in-law' }
-      ]
+      ],
+      subLabels: []
     });
   });
 
@@ -99,6 +101,104 @@ describe('parseRelationDefinitions', () => {
       '"boss <-> EMPLOYEE" defines "EMPLOYEE" again. Each label can be defined once.',
       '"spouse" defines "spouse" again. Each label can be defined once.'
     ]);
+  });
+});
+
+describe('parseRelationDefinitions sub-labels', () => {
+  it('parses sub-label lines beside pairs and rules', () => {
+    expect(parseRelationDefinitions(['mother <-> child', ' birthMother<mother ', 'grandmother = parent -> mother', 'birthMother < parent'])).toStrictEqual({
+      definitions: [{ inverseLabel: 'child', label: 'mother' }],
+      errors: [],
+      rules: [{ chains: [['parent', 'mother']], label: 'grandmother' }],
+      subLabels: [
+        { label: 'birthMother', superLabel: 'mother' },
+        { label: 'birthMother', superLabel: 'parent' }
+      ]
+    });
+  });
+
+  it.each([
+    ['< mother'],
+    ['birthMother <'],
+    ['a < b < c'],
+    ['a | b < c']
+  ])('rejects the malformed sub-label line %j', (line) => {
+    const result = parseRelationDefinitions([line]);
+    expect(result.subLabels).toStrictEqual([]);
+    expect(result.errors).toStrictEqual([`"${line}" is not a sub-label. Write "label < superLabel".`]);
+  });
+
+  it('rejects a repeated sub-label line, ignoring case', () => {
+    const result = parseRelationDefinitions(['birthMother < mother', 'BirthMother < Mother']);
+    expect(result.subLabels).toStrictEqual([{ label: 'birthMother', superLabel: 'mother' }]);
+    expect(result.errors).toStrictEqual(['"BirthMother < Mother" makes "BirthMother" a kind of "Mother" again.']);
+  });
+
+  it('rejects a line that makes a label a kind of itself, directly or through other labels', () => {
+    const result = parseRelationDefinitions(['a < a', 'a < b', 'b < c', 'c < A']);
+    expect(result.subLabels).toStrictEqual([{ label: 'a', superLabel: 'b' }, { label: 'b', superLabel: 'c' }]);
+    expect(result.errors).toStrictEqual([
+      '"a < a" makes "a" a kind of itself. A label cannot be its own superset, directly or through other labels.',
+      '"c < A" makes "c" a kind of itself. A label cannot be its own superset, directly or through other labels.'
+    ]);
+  });
+});
+
+describe('RelationRegistry sub-labels', () => {
+  function createRegistry(lines: readonly string[]): RelationRegistry {
+    const { definitions, rules, subLabels } = parseRelationDefinitions(lines);
+    return new RelationRegistry(definitions, rules, subLabels);
+  }
+
+  it('matches a label, ignoring case, and its sub-labels at every level, but not its superset labels', () => {
+    const registry = createRegistry(['birthMother < mother', 'mother < parent', 'coAuthor < author']);
+    expect(registry.isLabelOrSubLabel('Mother', ' mother ')).toBe(true);
+    expect(registry.isLabelOrSubLabel('birthMother', 'mother')).toBe(true);
+    expect(registry.isLabelOrSubLabel(' BirthMother ', 'parent')).toBe(true);
+    expect(registry.isLabelOrSubLabel('parent', 'mother')).toBe(false);
+    expect(registry.isLabelOrSubLabel('coAuthor', 'parent')).toBe(false);
+  });
+
+  it('answers the widest superset labels of a label, each once, or the label itself', () => {
+    const registry = createRegistry(['birthMother < mother', 'birthMother < guardian', 'mother < parent', 'guardian < Parent', 'stepMother < mother']);
+    expect(registry.getRootLabels('birthMother')).toStrictEqual(['parent']);
+    expect(registry.getRootLabels('guardian')).toStrictEqual(['Parent']);
+    expect(registry.getRootLabels('Spouse')).toStrictEqual(['Spouse']);
+    expect(createRegistry(['coAuthor < author', 'coAuthor < contributor']).getRootLabels('coAuthor')).toStrictEqual(['author', 'contributor']);
+  });
+
+  it('gives a sub-label with no pair the inverse of its nearest superset that has one', () => {
+    const registry = createRegistry(['parent <-> child', 'birthMother < mother', 'mother < parent', 'mentor', 'coMentor < mentor']);
+    expect(registry.getInverseLabel('birthMother')).toBe('child');
+    expect(registry.getInverseLabel('mother')).toBe('child');
+    expect(registry.getInverseLabel('coMentor')).toBeNull();
+  });
+
+  it('keeps a sub-label\'s own pair, and implies the inverse sub-label when both have pairs', () => {
+    const registry = createRegistry(['mother <-> child', 'birthMother <-> birthChild', 'birthMother < mother', 'spouse <-> spouse', 'wife <-> husband', 'wife < spouse']);
+    expect(registry.getInverseLabel('birthMother')).toBe('birthChild');
+    expect(registry.isLabelOrSubLabel('birthChild', 'child')).toBe(true);
+    expect(registry.isLabelOrSubLabel('husband', 'spouse')).toBe(true);
+    expect(registry.isLabelOrSubLabel('child', 'birthChild')).toBe(false);
+  });
+
+  it('walks a label reached by two paths once', () => {
+    const registry = createRegistry(['a < b', 'a < c', 'b < d', 'c < d', 'd < e', 'e <-> f']);
+    expect(registry.isLabelOrSubLabel('a', 'x')).toBe(false);
+    expect(registry.getRootLabels('a')).toStrictEqual(['e']);
+    expect(registry.getInverseLabel('a')).toBe('f');
+    expect(createRegistry(['a < b', 'a < c', 'b < d', 'c < d']).getInverseLabel('a')).toBeNull();
+  });
+
+  it('keeps one copy of an implied inverse sub-label that is also written', () => {
+    const registry = createRegistry(['mother <-> child', 'birthMother <-> birthChild', 'birthMother < mother', 'birthChild < child']);
+    expect(registry.getRootLabels('birthChild')).toStrictEqual(['child']);
+  });
+
+  it('implies no inverse sub-label that would make a label a kind of itself', () => {
+    const registry = createRegistry(['manager <-> report', 'manager < report']);
+    expect(registry.isLabelOrSubLabel('manager', 'report')).toBe(true);
+    expect(registry.isLabelOrSubLabel('report', 'manager')).toBe(false);
   });
 });
 
