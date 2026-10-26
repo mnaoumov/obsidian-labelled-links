@@ -37,6 +37,8 @@ import { TFile } from 'obsidian';
 
 import type {
   LabelledLinksApi,
+  LabelledLinksDerivedRelation,
+  LabelledLinksGetDerivedRelationsOptions,
   LabelledLinksGetRelationsOptions,
   LabelledLinksRelation,
   LabelledLinksRelationDirection
@@ -70,11 +72,30 @@ const GET_RELATIONS_OPTIONS_GUARD = optionsGuard<LabelledLinksGetRelationsOption
   label: NULLABLE_LABEL_GUARD
 }, { description: 'relation filters' });
 
+const DERIVED_RELATION_GUARD = objectGuard<LabelledLinksDerivedRelation>({
+  isTargetResolved: BOOLEAN_GUARD,
+  label: LABEL_GUARD,
+  sourcePath: PATH_GUARD,
+  steps: arrayGuard(RELATION_GUARD),
+  targetPath: PATH_GUARD
+}, { description: 'a derived relation' });
+
+const GET_DERIVED_RELATIONS_OPTIONS_GUARD = optionsGuard<LabelledLinksGetDerivedRelationsOptions>({
+  label: LABEL_GUARD
+}, { description: 'derived relation filters' });
+
 /**
  * The contract this plugin publishes with {@link LabelledLinksApi}, for a consumer to pass as the `contract`
  * when it looks the API up.
  */
 export const LABELLED_LINKS_API_CONTRACT = defineApiContract<LabelledLinksApi>({
+  getDerivedRelations: {
+    input: createArgumentsSchema([
+      unionGuard(PATH_GUARD, instanceOfGuard(TFile)),
+      optionalGuard(GET_DERIVED_RELATIONS_OPTIONS_GUARD)
+    ]),
+    output: createTypeGuardSchema(arrayGuard(DERIVED_RELATION_GUARD))
+  },
   getInverseLabel: {
     input: createArgumentsSchema([LABEL_GUARD]),
     output: createTypeGuardSchema(NULLABLE_LABEL_GUARD)

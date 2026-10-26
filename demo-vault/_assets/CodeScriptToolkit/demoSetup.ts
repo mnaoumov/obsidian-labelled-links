@@ -21,8 +21,20 @@ import {
  * supported route, which is why that file imports nothing but `obsidian`.
  */
 interface LabelledLinksApi {
+  getDerivedRelations: (pathOrFile: string | TFile, options?: LabelledLinksGetDerivedRelationsOptions) => LabelledLinksDerivedRelation[];
   getInverseLabel: (label: string) => null | string;
   getRelations: (pathOrFile: string | TFile, options?: LabelledLinksGetRelationsOptions) => LabelledLinksRelation[];
+}
+
+interface LabelledLinksDerivedRelation {
+  readonly label: string;
+  readonly sourcePath: string;
+  readonly steps: readonly LabelledLinksRelation[];
+  readonly targetPath: string;
+}
+
+interface LabelledLinksGetDerivedRelationsOptions {
+  readonly label?: string;
 }
 
 interface LabelledLinksGetRelationsOptions {
@@ -51,6 +63,7 @@ const DATACORE_PLUGIN_ID = 'datacore';
 const DATAVIEW_PLUGIN_ID = 'dataview';
 
 const DEFAULT_RELATION_DEFINITIONS = ['parent <-> child', 'spouse <-> spouse', 'sibling <-> sibling'];
+const COMPOSITION_RULES = ['aunt = parent -> sibling', 'sibling-in-law = spouse -> sibling | sibling -> spouse'];
 const NOTICE_DURATION_IN_MILLISECONDS = 10000;
 const RELATIONS_CHANGED_EVENT_NAME = 'labelled-links:relations-changed';
 
@@ -96,6 +109,29 @@ export function showRelations(app: App, notePath: string, options?: LabelledLink
   });
   new Notice(
     `getRelations('${getBaseName(notePath)}'${options ? `, ${JSON.stringify(options)}` : ''}) returned ${String(relations.length)}:\n${lines.join('\n')}`,
+    NOTICE_DURATION_IN_MILLISECONDS
+  );
+}
+
+/**
+ * Asks the API for the relations the registry's composition rules derive for a note, and shows one line per
+ * relation with the chain that produced it.
+ *
+ * Manual equivalent: open the note and read the **Derived** section of the relations pane, as on
+ * **03 Relations pane**.
+ */
+export function showDerivedRelations(app: App, notePath: string, options?: LabelledLinksGetDerivedRelationsOptions): void {
+  const labelledLinksApi = getApi(app);
+  if (!labelledLinksApi) {
+    return;
+  }
+  const relations = labelledLinksApi.getDerivedRelations(notePath, options);
+  const lines = relations.map((relation) => {
+    const chain = relation.steps.map((step) => step.label).join(' -> ');
+    return `${relation.label} -> ${getBaseName(relation.targetPath)} (through ${chain})`;
+  });
+  new Notice(
+    `getDerivedRelations('${getBaseName(notePath)}'${options ? `, ${JSON.stringify(options)}` : ''}) returned ${String(relations.length)}:\n${lines.join('\n')}`,
     NOTICE_DURATION_IN_MILLISECONDS
   );
 }
@@ -234,9 +270,21 @@ export async function setRelationDefinitions(app: App, relationDefinitions: stri
 export async function resetRelationDefinitions(app: App): Promise<void> {
   await setRelationDefinitions(app, DEFAULT_RELATION_DEFINITIONS);
 }
+
+/**
+ * Adds two composition rules to the default registry: `aunt` (a parent's sibling) and `sibling-in-law` (a
+ * spouse's sibling, or a sibling's spouse).
+ *
+ * Manual equivalent: add the lines `aunt = parent -> sibling` and
+ * `sibling-in-law = spouse -> sibling | sibling -> spouse` to **Relation registry** in the settings tab.
+ */
+export async function addCompositionRules(app: App): Promise<void> {
+  await setRelationDefinitions(app, [...DEFAULT_RELATION_DEFINITIONS, ...COMPOSITION_RULES]);
+}
+
 function getApi(app: App): LabelledLinksApi | null {
   const labelledLinksApi = findPluginApi<LabelledLinksApi>({
-    apiVersionRange: '^1.0.0',
+    apiVersionRange: '^1.1.0',
     pluginId: PLUGIN_ID
   });
   if (!labelledLinksApi) {

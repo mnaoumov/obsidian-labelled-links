@@ -29,9 +29,11 @@ describe('PluginSettingsComponent', () => {
   });
 
   it('builds the relation registry from the current settings', async () => {
-    const component = createComponent({ relationDefinitions: ['employee <-> employer'] });
+    const component = createComponent({ relationDefinitions: ['employee <-> employer', 'boss = employer -> employer'] });
     await component.loadWithPromises();
-    expect(component.createRelationRegistry().getInverseLabel('employer')).toBe('employee');
+    const registry = component.createRelationRegistry();
+    expect(registry.getInverseLabel('employer')).toBe('employee');
+    expect(registry.getRule('boss')?.chains).toStrictEqual([['employer', 'employer']]);
   });
 
   it('rejects a registry with a malformed or repeated line, naming each one', async () => {

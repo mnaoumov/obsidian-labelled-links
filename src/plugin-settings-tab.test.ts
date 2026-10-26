@@ -84,7 +84,7 @@ describe('PluginSettingsTab', () => {
     const tab = await createTab();
     const [setting] = renderRows(tab);
     const codeEls = [...setting?.descEl.querySelectorAll('code') ?? []];
-    expect(codeEls.map((codeEl) => codeEl.textContent)).toStrictEqual(['employee <-> employer', 'spouse <-> spouse', 'mentions']);
+    expect(codeEls.map((codeEl) => codeEl.textContent)).toStrictEqual(['employee <-> employer', 'spouse <-> spouse', 'mentions', 'aunt = parent -> sibling', '|']);
     expect(codeEls.every((codeEl) => codeEl.parentElement?.matches('.markdown-rendered.code'))).toBe(true);
   });
 });

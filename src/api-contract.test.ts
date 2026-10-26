@@ -18,6 +18,7 @@ import {
 
 import type {
   LabelledLinksApi,
+  LabelledLinksDerivedRelation,
   LabelledLinksRelation
 } from '../api.d.ts';
 
@@ -46,6 +47,14 @@ const PLAIN_LINK: LabelledLinksRelation = {
   reference: { displayText: 'B', link: 'Bob', original: '[[Bob|B]]' },
   sourcePath: 'Carol.md',
   targetPath: 'Bob'
+};
+
+const DERIVED_RELATION: LabelledLinksDerivedRelation = {
+  isTargetResolved: true,
+  label: 'grandEmployee',
+  sourcePath: 'Alice.md',
+  steps: [RELATION, { ...RELATION, sourcePath: 'Bob.md', targetPath: 'Carol.md' }],
+  targetPath: 'Carol.md'
 };
 
 const LABEL: PayloadCases = { invalid: [[], [null], [1], ['employee', 'extra'], 'employee'], valid: [['employee']] };
@@ -80,7 +89,35 @@ const RELATIONS: PayloadCases = {
   valid: [[], [RELATION, PLAIN_LINK]]
 };
 
+const GET_DERIVED_RELATIONS_INPUT: PayloadCases = {
+  invalid: [
+    [],
+    [1],
+    ['Alice.md', 'aunt'],
+    ['Alice.md', { label: null }],
+    ['Alice.md', {}, 'extra']
+  ],
+  valid: [
+    ['Alice.md'],
+    [alice],
+    ['Alice.md', {}],
+    ['Alice.md', { label: 'aunt' }]
+  ]
+};
+const DERIVED_RELATIONS: PayloadCases = {
+  invalid: [
+    null,
+    DERIVED_RELATION,
+    [{ ...DERIVED_RELATION, label: null }],
+    [{ ...DERIVED_RELATION, steps: null }],
+    [{ ...DERIVED_RELATION, steps: [{ ...RELATION, direction: 'sideways' }] }],
+    [{ ...DERIVED_RELATION, targetPath: 1 }]
+  ],
+  valid: [[], [DERIVED_RELATION]]
+};
+
 const CASES: Record<keyof LabelledLinksApi, ApiMethodCases> = {
+  getDerivedRelations: { input: GET_DERIVED_RELATIONS_INPUT, output: DERIVED_RELATIONS },
   getInverseLabel: { input: LABEL, output: NULLABLE_LABEL },
   getRelations: { input: GET_RELATIONS_INPUT, output: RELATIONS }
 };

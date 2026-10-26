@@ -22,10 +22,10 @@ describe('the published contract', () => {
   });
 
   it('should declare every member of the api in the contract', () => {
-    expect(Object.keys(PLUGIN_API_CONTRACT).sort()).toEqual(['getInverseLabel', 'getRelations']);
+    expect(Object.keys(PLUGIN_API_CONTRACT).sort()).toEqual(['getDerivedRelations', 'getInverseLabel', 'getRelations']);
   });
 
   it('should publish a contract version independent of the plugin version', () => {
-    expect(PLUGIN_API_VERSION).toBe('1.0.0');
+    expect(PLUGIN_API_VERSION).toBe('1.1.0');
   });
 });

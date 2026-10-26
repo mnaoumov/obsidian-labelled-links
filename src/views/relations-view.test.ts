@@ -163,6 +163,37 @@ describe('RelationsView', () => {
     expect(view.contentEl.querySelector('.labelled-links-relation-sentence')?.getAttribute('aria-label')).toBe('Alice: Employee: "[[Bob]]"');
   });
 
+  it('lists derived relations by label, each saying which chain produced it', async () => {
+    const app = App.createConfigured__({
+      files: {
+        'Alice.md': '---\nmother: "[[Beth]]"\n---\n',
+        'Beth.md': 'mother:: [[Carol]]\nchild:: [[Alice]]\nchild:: [[Ghost]]\n',
+        'Carol.md': ''
+      }
+    });
+    const index = new RelationIndexComponent(app.asOriginalType__());
+    index.load();
+    const { definitions, rules } = parseRelationDefinitions(['parent <-> child', 'grandmother = mother -> mother', 'sibling = parent -> child']);
+    index.setRegistry(new RelationRegistry(definitions, rules));
+    await index.rebuild();
+    const view = new RelationsView({ leaf: WorkspaceLeaf.create2__(app).asOriginalType3__(), relationIndex: index });
+    await view.setFile(getFile(app, 'Alice.md'));
+
+    expect(readPane(view).at(-1)).toStrictEqual({
+      groups: [
+        { label: 'grandmother', rows: ['Carol | Carol is Alice\'s grandmother'] },
+        { label: 'sibling', rows: ['Ghost | Ghost is Alice\'s sibling'] }
+      ],
+      title: 'Derived'
+    });
+    const derivedEls = [...view.contentEl.querySelectorAll('.labelled-links-relation-derived')];
+    expect(derivedEls.map((el) => el.querySelector('.labelled-links-relation-sentence')?.getAttribute('aria-label'))).toStrictEqual([
+      'Carol is Alice\'s grandmother: Alice\'s mother Beth\'s mother',
+      'Ghost is Alice\'s sibling: Alice\'s parent Beth\'s child'
+    ]);
+    expect(derivedEls[1]?.querySelector('.labelled-links-relation-link')?.hasClass('is-unresolved')).toBe(true);
+  });
+
   it('keeps the extension of a target that is not a note', async () => {
     const { app, view } = await createFixture();
     await view.setFile(getFile(app, 'Gallery.md'));
@@ -200,6 +231,7 @@ describe('RelationsView', () => {
   it('shows no snippet for a reference with no position, a source that is gone or a line past the end', async () => {
     const { app } = await createFixture();
     const relationIndex = strictProxy<RelationIndexComponent>({
+      getDerivedRelations: () => [],
       getRelations: () => [
         createRelation({ link: 'Alice', original: '[[Alice]]' }, 'Eve.md'),
         createRelation(castTo<Reference>({ link: 'Alice', original: '[[Alice]]', position: { start: { line: 0 } } }), 'Gone.md'),
