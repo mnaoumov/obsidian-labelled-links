@@ -4,12 +4,22 @@ import {
   it
 } from 'vitest';
 
+import type { CompositionRule } from './relation-registry.ts';
+
 import {
+  doesPassPropertyFilters,
   MAX_RULE_LENGTH,
   normalizeLabel,
   parseRelationDefinitions,
   RelationRegistry
 } from './relation-registry.ts';
+
+const RULE_ERROR_SUFFIX = 'is not a rule. Write "label = step -> step", with "|" between alternative chains, '
+  + '"[property]" or "[!property]" after a step to filter the notes it reaches, and "except label, label" at the end.';
+
+function createRule(label: string, chains: readonly (readonly string[])[], exclusions: readonly string[] = []): CompositionRule {
+  return { chains: chains.map((chain) => chain.map((step) => ({ filters: [], label: step }))), exclusions, label };
+}
 
 describe('parseRelationDefinitions', () => {
   it('parses a pair, a symmetric label and a label with no inverse, skipping blank lines', () => {
@@ -32,8 +42,8 @@ describe('parseRelationDefinitions', () => {
       errors: [],
       labelVariants: [],
       rules: [
-        { chains: [['parent', 'child']], label: 'sibling' },
-        { chains: [['spouse', 'sibling'], ['sibling', 'spouse']], label: 'in-law' }
+        createRule('sibling', [['parent', 'child']]),
+        createRule('in-law', [['spouse', 'sibling'], ['sibling', 'spouse']])
       ],
       subLabels: []
     });
@@ -47,22 +57,72 @@ describe('parseRelationDefinitions', () => {
     ['aunt = = parent'],
     ['aunt: = parent'],
     ['aunt = parent <- sibling'],
-    ['aunt|uncle = parent -> sibling']
+    ['aunt|uncle = parent -> sibling'],
+    ['aunt = parent[] -> sibling'],
+    ['aunt = parent[!] -> sibling'],
+    ['aunt = parent[x] y -> sibling'],
+    ['aunt = parent[x -> sibling'],
+    ['aunt = [x] -> sibling'],
+    ['aunt[x] = parent'],
+    ['aunt = parent except'],
+    ['aunt = parent except a,'],
+    ['aunt = parent except a except b'],
+    ['aunt = parent except a[x]']
   ])('rejects the malformed rule %j', (line) => {
     const result = parseRelationDefinitions([line]);
     expect(result.rules).toStrictEqual([]);
-    expect(result.errors).toStrictEqual([`"${line}" is not a rule. Write "label = step -> step", with "|" between alternative chains.`]);
+    expect(result.errors).toStrictEqual([`"${line}" ${RULE_ERROR_SUFFIX}`]);
+  });
+
+  it('parses step filters and an except list', () => {
+    const result = parseRelationDefinitions([
+      'spouse = partnership[ !divorceDate ] -> partner[deathDate][Status :  retired ][!x:y]',
+      'stepParent = parent -> spouse  except parent ,  guardian'
+    ]);
+    expect(result.errors).toStrictEqual([]);
+    expect(result.rules).toStrictEqual([
+      {
+        chains: [[
+          { filters: [{ isNegated: true, propertyName: 'divorceDate', value: null }], label: 'partnership' },
+          {
+            filters: [
+              { isNegated: false, propertyName: 'deathDate', value: null },
+              { isNegated: false, propertyName: 'Status', value: 'retired' },
+              { isNegated: true, propertyName: 'x', value: 'y' }
+            ],
+            label: 'partner'
+          }
+        ]],
+        exclusions: [],
+        label: 'spouse'
+      },
+      createRule('stepParent', [['parent', 'spouse']], ['parent', 'guardian'])
+    ]);
+  });
+
+  it('rejects a rule whose except list reaches its own label, and counts an except rule in its length', () => {
+    const result = parseRelationDefinitions(['a = x except b', 'b = y except a', 'long = x except eight', 'eight = x -> x -> x -> x -> x -> x -> x -> x', 'nine = x except long -> x']);
+    expect(result.rules.map((rule) => rule.label)).toStrictEqual(['long', 'eight']);
+    expect(result.errors).toStrictEqual([
+      `"nine = x except long -> x" ${RULE_ERROR_SUFFIX}`,
+      '"a = x except b" reaches its own label: a -> b -> a. A rule cannot name itself, directly or through another rule.',
+      '"b = y except a" reaches its own label: b -> a -> b. A rule cannot name itself, directly or through another rule.'
+    ]);
+    expect(parseRelationDefinitions(['nine = eight -> x', 'eight = x -> x -> x -> x -> x -> x -> x -> x', 'short = x except nine']).errors).toStrictEqual([
+      '"nine = eight -> x" chains 9 links once its rules are expanded. A rule can chain at most 8.',
+      '"short = x except nine" chains 9 links once its rules are expanded. A rule can chain at most 8.'
+    ]);
   });
 
   it('rejects a rule defined twice, ignoring case', () => {
     const result = parseRelationDefinitions(['aunt = parent -> sibling', 'Aunt = mother -> sister']);
-    expect(result.rules).toStrictEqual([{ chains: [['parent', 'sibling']], label: 'aunt' }]);
+    expect(result.rules).toStrictEqual([createRule('aunt', [['parent', 'sibling']])]);
     expect(result.errors).toStrictEqual(['"Aunt = mother -> sister" defines the rule "Aunt" again. Each rule can be defined once.']);
   });
 
   it('rejects a rule that reaches its own label, and a rule naming one', () => {
     const result = parseRelationDefinitions(['a = b -> c', 'b = A', 'd = x | b', 'e = e', 'f = c']);
-    expect(result.rules).toStrictEqual([{ chains: [['c']], label: 'f' }]);
+    expect(result.rules).toStrictEqual([createRule('f', [['c']])]);
     expect(result.errors).toStrictEqual([
       '"a = b -> c" reaches its own label: a -> b -> a. A rule cannot name itself, directly or through another rule.',
       '"b = A" reaches its own label: b -> a -> b. A rule cannot name itself, directly or through another rule.',
@@ -112,7 +172,7 @@ describe('parseRelationDefinitions sub-labels', () => {
       definitions: [{ inverseLabel: 'child', label: 'mother' }],
       errors: [],
       labelVariants: [],
-      rules: [{ chains: [['parent', 'mother']], label: 'grandmother' }],
+      rules: [createRule('grandmother', [['parent', 'mother']])],
       subLabels: [
         { label: 'birthMother', superLabel: 'mother' },
         { label: 'birthMother', superLabel: 'parent' }
@@ -234,7 +294,7 @@ describe('RelationRegistry', () => {
     const { definitions, rules } = parseRelationDefinitions(['parent <-> child', 'aunt = parent -> sibling', 'cousin = aunt -> child']);
     const withRules = new RelationRegistry(definitions, rules);
     expect(withRules.hasRules).toBe(true);
-    expect(withRules.getRule(' Aunt ')).toStrictEqual({ chains: [['parent', 'sibling']], label: 'aunt' });
+    expect(withRules.getRule(' Aunt ')).toStrictEqual(createRule('aunt', [['parent', 'sibling']]));
     expect(withRules.getRule('parent')).toBeNull();
     expect(withRules.getRules().map((rule) => rule.label)).toStrictEqual(['aunt', 'cousin']);
     expect(registry.hasRules).toBe(false);
@@ -300,6 +360,45 @@ describe('RelationRegistry label variants', () => {
 
   it('shows a label with no variants as itself', () => {
     expect(registry.getShownLabel('child', { gender: 'female' })).toBe('child');
+  });
+});
+
+describe('doesPassPropertyFilters', () => {
+  const [rule] = parseRelationDefinitions(['r = a[deathDate] -> b[!deathDate] -> c[status: Retired] -> d[!status: retired]']).rules;
+  const [isSet, isNotSet, hasValue, lacksValue] = (rule?.chains[0] ?? []).map((step) => step.filters);
+
+  it.each([
+    [{ deathDate: '2001-02-03' }, true],
+    [{ DeathDate: 2001 }, true],
+    [{ deathDate: ['2001'] }, true],
+    [{ deathDate: '' }, false],
+    [{ deathDate: null }, false],
+    [{ deathDate: [] }, false],
+    [{ deathDate: [null, ''] }, false],
+    [{}, false],
+    [null, false],
+    [undefined, false]
+  ])('says whether %j has the property set', (frontmatter, expected) => {
+    expect(doesPassPropertyFilters(isSet ?? [], frontmatter)).toBe(expected);
+    expect(doesPassPropertyFilters(isNotSet ?? [], frontmatter)).toBe(!expected);
+  });
+
+  it.each([
+    [{ status: 'retired' }, true],
+    [{ Status: 'RETIRED' }, true],
+    [{ status: ['active', 'Retired'] }, true],
+    [{ status: 'active' }, false],
+    [{ status: { retired: true } }, false],
+    [null, false]
+  ])('says whether %j holds the value', (frontmatter, expected) => {
+    expect(doesPassPropertyFilters(hasValue ?? [], frontmatter)).toBe(expected);
+    expect(doesPassPropertyFilters(lacksValue ?? [], frontmatter)).toBe(!expected);
+  });
+
+  it('matches a number or a boolean by its text, and passes every note with no filters', () => {
+    const [numberRule] = parseRelationDefinitions(['r = a[age: 42][alive: TRUE]']).rules;
+    expect(doesPassPropertyFilters(numberRule?.chains[0]?.[0]?.filters ?? [], { age: 42, alive: true })).toBe(true);
+    expect(doesPassPropertyFilters([], null)).toBe(true);
   });
 });
 

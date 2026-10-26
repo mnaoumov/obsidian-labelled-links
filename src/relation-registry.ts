@@ -1,17 +1,27 @@
-import { getMandatoryNamedGroup } from '@mnaoumov/typescript-lib/reg-exp';
+import {
+  getMandatoryNamedGroup,
+  getOptionalNamedGroup
+} from '@mnaoumov/typescript-lib/reg-exp';
 import { ensureNonNullable } from '@mnaoumov/typescript-lib/type-guards';
 
 /**
  * A composition rule: a derived label defined as one or more chains of labels, `aunt = parent -> sibling`.
  *
  * Each step is a label as seen from the note the step starts at, so `parent` follows a written `parent` link
- * and an incoming `child` link alike when the registry pairs them. A step may name another rule.
+ * and an incoming `child` link alike when the registry pairs them. A step may name another rule, and may keep only
+ * the notes whose properties pass its filters: `spouse = partnership[!divorceDate] -> partner`. An `except` list
+ * leaves out the notes the start note already reaches by other labels: `stepParent = parent -> spouse except parent`.
  */
 export interface CompositionRule {
   /**
-   * The alternative chains, each a list of step labels: `a = b -> c | d` has `[['b', 'c'], ['d']]`.
+   * The alternative chains, each a list of steps: `a = b -> c | d` has the steps `b` and `c`, then `d`.
    */
-  readonly chains: readonly (readonly string[])[];
+  readonly chains: readonly (readonly RuleStep[])[];
+
+  /**
+   * The labels whose notes the rule leaves out, as seen from the note it starts at: `except parent, child`.
+   */
+  readonly exclusions: readonly string[];
 
   /**
    * The derived label, as written in the rule.
@@ -87,6 +97,28 @@ export interface ParseRelationDefinitionsResult {
 }
 
 /**
+ * A condition a rule step puts on the notes it reaches, by one of their properties: `[deathDate]` keeps the notes
+ * where it is set, `[!deathDate]` the notes where it is not, and `[status: retired]` the notes where it holds the
+ * value.
+ */
+export interface PropertyFilter {
+  /**
+   * Whether the condition is negated, `[!deathDate]`.
+   */
+  readonly isNegated: boolean;
+
+  /**
+   * The property, compared ignoring case.
+   */
+  readonly propertyName: string;
+
+  /**
+   * The value the property has to hold, compared ignoring case, or `null` when any value counts.
+   */
+  readonly value: null | string;
+}
+
+/**
  * One line of the registry: a pair (`employee <-> employer`), a symmetric label (`spouse <-> spouse`) or a
  * label with no inverse (`mentions`).
  */
@@ -98,6 +130,21 @@ export interface RelationDefinition {
 
   /**
    * The label as it is written in the notes.
+   */
+  readonly label: string;
+}
+
+/**
+ * One step of a composition rule's chain: a label, and the filters the notes it reaches have to pass.
+ */
+export interface RuleStep {
+  /**
+   * The filters, all of which a reached note has to pass.
+   */
+  readonly filters: readonly PropertyFilter[];
+
+  /**
+   * The step's label, as seen from the note the step starts at.
    */
   readonly label: string;
 }
@@ -138,6 +185,16 @@ const SUB_LABEL_REG_EXP = /^(?<label>[^<]+?)\s*<\s*(?<superLabel>[^<]+)$/u;
 const CHAIN_SEPARATOR = '|';
 
 const STEP_SEPARATOR = '->';
+
+const STEP_REG_EXP = /^(?<label>[^[\]]+?)\s*(?<filters>(?:\[[^[\]]*\]\s*)*)$/u;
+
+const FILTER_REG_EXP = /\[(?<filter>[^[\]]*)\]/gu;
+
+const FILTER_CONTENT_REG_EXP = /^(?<negation>!?)\s*(?<propertyName>[^:!]+?)\s*(?::\s*(?<value>.+?))?$/u;
+
+const EXCLUSION_REG_EXP = /\s+except(?:\s+|$)/u;
+
+const EXCLUSION_SEPARATOR = ',';
 
 const VARIANTS_SEPARATOR = '@';
 
@@ -308,10 +365,7 @@ export class RelationRegistry {
       return label;
     }
 
-    const propertyKey = normalizeLabel(labelVariants.propertyName);
-    const propertyName = Object.keys(frontmatter).find((key) => normalizeLabel(key) === propertyKey);
-    const value: unknown = propertyName === undefined ? undefined : frontmatter[propertyName];
-    const values = new Set((Array.isArray(value) ? value as unknown[] : [value]).filter((item) => typeof item === 'string').map((item) => normalizeLabel(item)));
+    const values = new Set(getPropertyItems(frontmatter, labelVariants.propertyName).filter((item) => typeof item === 'string').map((item) => normalizeLabel(item)));
     return labelVariants.variants.find((variant) => values.has(normalizeLabel(variant.value)))?.label ?? label;
   }
 
@@ -379,6 +433,27 @@ export class RelationRegistry {
 }
 
 /**
+ * Checks whether a note passes the filters of a rule step.
+ *
+ * A property is set when it holds a value other than an empty string or an empty list. A value filter matches a
+ * string, number or boolean ignoring case, and any item of a list.
+ *
+ * @param filters - The filters.
+ * @param frontmatter - The frontmatter of the note, or `null` when it has none or does not exist.
+ * @returns Whether the note passes every filter.
+ */
+export function doesPassPropertyFilters(filters: readonly PropertyFilter[], frontmatter: null | Readonly<Record<string, unknown>> | undefined): boolean {
+  return filters.every((filter) => {
+    const items = getPropertyItems(frontmatter, filter.propertyName).filter((item) => item !== null && item !== '');
+    const filterValue = filter.value;
+    const isMatch = filterValue === null
+      ? items.length > 0
+      : items.some((item) => (typeof item === 'string' || typeof item === 'number' || typeof item === 'boolean') && normalizeLabel(String(item)) === normalizeLabel(filterValue));
+    return isMatch !== filter.isNegated;
+  });
+}
+
+/**
  * Normalizes a label for comparison: trimmed and lowercased.
  *
  * @param label - The label.
@@ -392,7 +467,8 @@ export function normalizeLabel(label: string): string {
  * Parses the registry lines stored in the settings.
  *
  * @param lines - One definition per line: `label <-> inverse`, `label <-> label` for a symmetric label, a
- * lone `label` for a label with no inverse, `label = step -> step | step` for a composition rule, or
+ * lone `label` for a label with no inverse, `label = step -> step[!property] | step except label` for a
+ * composition rule with its step filters and exclusions, or
  * `label < superLabel` for a label that is a kind of another, or `label @ property: value -> variant, ...` for
  * the variants a label is shown as.
  * @returns The definitions, rules, sub-labels and label variants, and a message for each line that is malformed,
@@ -435,7 +511,10 @@ export function parseRelationDefinitions(lines: readonly string[]): ParseRelatio
     if (line.includes(RULE_SEPARATOR)) {
       const rule = parseRuleLine(line);
       if (rule === null) {
-        errors.push(`"${line}" is not a rule. Write "label = step -> step", with "|" between alternative chains.`);
+        errors.push(
+          `"${line}" is not a rule. Write "label = step -> step", with "|" between alternative chains, `
+            + '"[property]" or "[!property]" after a step to filter the notes it reaches, and "except label, label" at the end.'
+        );
         continue;
       }
 
@@ -520,6 +599,27 @@ function addSubLabel(line: string, subLabels: SubLabelDefinition[]): null | stri
 }
 
 /**
+ * Gets the items of a property, finding its key ignoring case.
+ *
+ * @param frontmatter - The frontmatter, or `null` when there is none.
+ * @param propertyName - The property.
+ * @returns The list's items, the lone value as one item, or nothing when the property is missing or `null`.
+ */
+function getPropertyItems(frontmatter: null | Readonly<Record<string, unknown>> | undefined, propertyName: string): unknown[] {
+  if (!frontmatter) {
+    return [];
+  }
+
+  const propertyKey = normalizeLabel(propertyName);
+  const key = Object.keys(frontmatter).find((candidate) => normalizeLabel(candidate) === propertyKey);
+  const value: unknown = key === undefined ? undefined : frontmatter[key];
+  if (value === undefined || value === null) {
+    return [];
+  }
+  return Array.isArray(value) ? value as unknown[] : [value];
+}
+
+/**
  * Gets how many links a rule chains once the rules it names are expanded: its longest chain, where a step that
  * names a rule counts as that rule's length.
  *
@@ -542,13 +642,22 @@ function getRuleLength(key: string, rules: ReadonlyMap<string, CompositionRule>,
   for (const chain of rule.chains) {
     let length = 0;
     for (const step of chain) {
-      const stepLength = getRuleLength(normalizeLabel(step), rules, [...path, key]);
+      const stepLength = getRuleLength(normalizeLabel(step.label), rules, [...path, key]);
       if (typeof stepLength !== 'number') {
         return stepLength;
       }
       length += stepLength;
     }
     maxLength = Math.max(maxLength, length);
+  }
+
+  // An exclusion is walked from the rule's start too, so it bounds the walk and can close a cycle like a chain.
+  for (const exclusion of rule.exclusions) {
+    const exclusionLength = getRuleLength(normalizeLabel(exclusion), rules, [...path, key]);
+    if (typeof exclusionLength !== 'number') {
+      return exclusionLength;
+    }
+    maxLength = Math.max(maxLength, exclusionLength);
   }
   return maxLength;
 }
@@ -558,7 +667,7 @@ function isValidLabel(label: string): boolean {
 }
 
 function isValidRuleLabel(label: string): boolean {
-  return label !== '' && isValidLabel(label) && !label.includes(CHAIN_SEPARATOR);
+  return label !== '' && isValidLabel(label) && !/[|[\]]/u.test(label);
 }
 
 function parseLine(line: string): null | RelationDefinition {
@@ -583,11 +692,49 @@ function parseRuleLine(line: string): CompositionRule | null {
   }
 
   const label = getMandatoryNamedGroup(match, 'label');
-  const chains = getMandatoryNamedGroup(match, 'chains')
-    .split(CHAIN_SEPARATOR)
-    .map((chain) => chain.split(STEP_SEPARATOR).map((step) => step.trim()));
-  const isValid = isValidRuleLabel(label) && chains.every((chain) => chain.every((step) => isValidRuleLabel(step)));
-  return isValid ? { chains, label } : null;
+  const [chainsText = '', exclusionsText, ...rest] = getMandatoryNamedGroup(match, 'chains').split(EXCLUSION_REG_EXP);
+  if (rest.length > 0) {
+    return null;
+  }
+
+  const chains: RuleStep[][] = [];
+  for (const chainText of chainsText.split(CHAIN_SEPARATOR)) {
+    const chain: RuleStep[] = [];
+    for (const stepText of chainText.split(STEP_SEPARATOR)) {
+      const step = parseRuleStep(stepText.trim());
+      if (step === null) {
+        return null;
+      }
+      chain.push(step);
+    }
+    chains.push(chain);
+  }
+
+  const exclusions = exclusionsText === undefined ? [] : exclusionsText.split(EXCLUSION_SEPARATOR).map((exclusion) => exclusion.trim());
+  return isValidRuleLabel(label) && exclusions.every((exclusion) => isValidRuleLabel(exclusion)) ? { chains, exclusions, label } : null;
+}
+
+function parseRuleStep(stepText: string): null | RuleStep {
+  const match = STEP_REG_EXP.exec(stepText);
+  if (!match) {
+    return null;
+  }
+
+  const label = getMandatoryNamedGroup(match, 'label');
+  const filters: PropertyFilter[] = [];
+  for (const filterMatch of getMandatoryNamedGroup(match, 'filters').matchAll(FILTER_REG_EXP)) {
+    const contentMatch = FILTER_CONTENT_REG_EXP.exec(getMandatoryNamedGroup(filterMatch, 'filter').trim());
+    if (!contentMatch) {
+      return null;
+    }
+    filters.push({
+      isNegated: getOptionalNamedGroup(contentMatch, 'negation') === '!',
+      propertyName: getMandatoryNamedGroup(contentMatch, 'propertyName'),
+      value: getOptionalNamedGroup(contentMatch, 'value')
+    });
+  }
+
+  return isValidRuleLabel(label) ? { filters, label } : null;
 }
 
 function parseVariantsLine(line: string): LabelVariants | null {

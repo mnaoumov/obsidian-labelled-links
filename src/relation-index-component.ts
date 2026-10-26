@@ -20,9 +20,11 @@ import type {
   ExtractedReference,
   LabelForm
 } from './relation-extractor.ts';
+import type { PropertyFilter } from './relation-registry.ts';
 
 import { extractReferences } from './relation-extractor.ts';
 import {
+  doesPassPropertyFilters,
   normalizeLabel,
   RelationRegistry
 } from './relation-registry.ts';
@@ -469,7 +471,8 @@ export class RelationIndexComponent extends LayoutReadyComponent {
   }
 
   /**
-   * Walks every chain of the rule that derives a label, leaving out the note the walk starts at.
+   * Walks every chain of the rule that derives a label, keeping at each step only the notes that pass its filters,
+   * and leaving out the note the walk starts at and the notes it reaches by the rule's `except` labels.
    *
    * @param path - The note the walk starts at.
    * @param label - The label.
@@ -483,14 +486,21 @@ export class RelationIndexComponent extends LayoutReadyComponent {
       return [];
     }
 
+    const excludedPaths = new Set([path]);
+    for (const exclusion of rule.exclusions) {
+      for (const end of this.followLabel(path, exclusion, shouldIncludeSubLabels)) {
+        excludedPaths.add(end.path);
+      }
+    }
+
     const ends = new Map<string, ChainEnd>();
     for (const chain of rule.chains) {
       let frontier: ChainEnd[] = [{ isResolved: true, path, steps: [] }];
       for (const step of chain) {
         const nextFrontier = new Map<string, ChainEnd>();
         for (const start of frontier) {
-          for (const end of this.followLabel(start.path, step, shouldIncludeSubLabels)) {
-            if (!nextFrontier.has(end.path)) {
+          for (const end of this.followLabel(start.path, step.label, shouldIncludeSubLabels)) {
+            if (!nextFrontier.has(end.path) && this.passesFilters(end.path, step.filters)) {
               nextFrontier.set(end.path, { ...end, steps: [...start.steps, ...end.steps] });
             }
           }
@@ -498,7 +508,7 @@ export class RelationIndexComponent extends LayoutReadyComponent {
         frontier = [...nextFrontier.values()];
       }
       for (const end of frontier) {
-        if (end.path !== path && !ends.has(end.path)) {
+        if (!excludedPaths.has(end.path) && !ends.has(end.path)) {
           ends.set(end.path, end);
         }
       }
@@ -561,6 +571,15 @@ export class RelationIndexComponent extends LayoutReadyComponent {
   private markResolutionStale(): void {
     this.isResolutionStale = true;
     this.triggerChanged(null);
+  }
+
+  private passesFilters(path: string, filters: readonly PropertyFilter[]): boolean {
+    if (filters.length === 0) {
+      return true;
+    }
+
+    const file = this.app.vault.getFileByPath(path);
+    return doesPassPropertyFilters(filters, file ? this.app.metadataCache.getFileCache(file)?.frontmatter : null);
   }
 
   private removeResolvedReferences(sourcePath: string): IndexedReference[] {

@@ -33,7 +33,7 @@ describe('PluginSettingsComponent', () => {
     await component.loadWithPromises();
     const registry = component.createRelationRegistry();
     expect(registry.getInverseLabel('employer')).toBe('employee');
-    expect(registry.getRule('boss')?.chains).toStrictEqual([['employer', 'employer']]);
+    expect(registry.getRule('boss')?.chains.map((chain) => chain.map((step) => step.label))).toStrictEqual([['employer', 'employer']]);
   });
 
   it('includes no preset by default', async () => {
@@ -48,7 +48,7 @@ describe('PluginSettingsComponent', () => {
     const registry = component.createRelationRegistry();
     expect(registry.getInverseLabel('parent')).toBe('kid');
     expect(registry.getInverseLabel('birthParent')).toBe('birthChild');
-    expect(registry.getRule('grandparent')?.chains).toStrictEqual([['parent', 'parent']]);
+    expect(registry.getRule('grandparent')?.chains.map((chain) => chain.map((step) => step.label))).toStrictEqual([['parent', 'parent']]);
     expect(registry.getShownLabel('parent', { gender: 'male' })).toBe('father');
   });
 

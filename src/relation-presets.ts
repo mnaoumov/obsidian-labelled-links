@@ -39,7 +39,8 @@ export interface RelationPreset {
  */
 export const FAMILY_PRESET: RelationPreset = {
   description: 'Parents and children, birth parents, partners joined by a partnership note, and the relatives derived from them: '
-    + 'spouses, siblings, grandparents, aunts and uncles, nieces and nephews, cousins and in-laws, '
+    + 'spouses (current and living, ex by the partnership\'s divorceDate, late by the partner\'s deathDate), step-parents and step-children, '
+    + 'siblings, grandparents, aunts and uncles, nieces and nephews, cousins and in-laws, '
     + 'each shown as mother or father, wife or husband and so on by the gender property of the note it describes.',
   id: 'family',
   lines: [
@@ -48,7 +49,13 @@ export const FAMILY_PRESET: RelationPreset = {
     'birthParent < parent',
     'partner <-> partnership',
     'spouse <-> spouse',
-    'spouse = partnership -> partner',
+    'spouse = partnership[!divorceDate] -> partner[!deathDate]',
+    'exSpouse <-> exSpouse',
+    'exSpouse = partnership[divorceDate] -> partner',
+    'lateSpouse = partnership[!divorceDate] -> partner[deathDate]',
+    'stepParent <-> stepChild',
+    'stepParent = parent -> spouse except parent',
+    'stepChild = spouse -> child except child',
     'sibling <-> sibling',
     'sibling = parent -> child',
     'grandparent <-> grandchild',
@@ -69,6 +76,10 @@ export const FAMILY_PRESET: RelationPreset = {
     'birthParent @ gender: female -> birthMother, male -> birthFather',
     'birthChild @ gender: female -> birthDaughter, male -> birthSon',
     'spouse @ gender: female -> wife, male -> husband',
+    'exSpouse @ gender: female -> exWife, male -> exHusband',
+    'lateSpouse @ gender: female -> lateWife, male -> lateHusband',
+    'stepParent @ gender: female -> stepMother, male -> stepFather',
+    'stepChild @ gender: female -> stepDaughter, male -> stepSon',
     'sibling @ gender: female -> sister, male -> brother',
     'grandparent @ gender: female -> grandmother, male -> grandfather',
     'grandchild @ gender: female -> granddaughter, male -> grandson',
@@ -79,7 +90,7 @@ export const FAMILY_PRESET: RelationPreset = {
     'siblingInLaw @ gender: female -> sisterInLaw, male -> brotherInLaw'
   ],
   name: 'Family',
-  version: '1.0.0'
+  version: '1.1.0'
 };
 
 /**

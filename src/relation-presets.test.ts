@@ -23,8 +23,16 @@ const FAMILY_FILES = {
   'Bob.md': '---\ngender: male\nparent: "[[Gran]]"\n---\n',
   'Carol.md': '---\ngender: female\nparent: "[[Alice]]"\n---\n',
   'Dan.md': '---\ngender: male\n---\n',
+  'Ed.md': '---\ngender: male\ndeathDate: 1990-01-01\n---\n',
+  'Fay.md': '---\ngender: female\n---\n',
   'Gran.md': '---\ngender: female\n---\n',
+  'Gran and Ed.md': '---\npartner:\n  - "[[Gran]]"\n  - "[[Ed]]"\n---\n',
+  'Hal.md': '---\ngender: male\n---\n',
+  'Hal and Ivy.md': '---\npartner:\n  - "[[Hal]]"\n  - "[[Ivy]]"\n---\n',
+  'Ivy.md': '---\ngender: female\n---\n',
+  'Jo.md': '---\nparent:\n  - "[[Hal]]"\n  - "[[Ivy]]"\n---\n',
   'Kid.md': '---\nparent: "[[Bob]]"\n---\n',
+  'Split.md': '---\npartner:\n  - "[[Bob]]"\n  - "[[Fay]]"\ndivorceDate: 2010-05-06\n---\n',
   'Wedding.md': '---\npartner:\n  - "[[Alice]]"\n  - "[[Dan]]"\nmarriageDate: 2001-02-03\n---\n'
 };
 
@@ -51,9 +59,20 @@ describe('FAMILY_PRESET', () => {
   it('derives the relatives and shows each by the gender of the note it describes', async () => {
     const index = await createFamilyIndex();
     expect(summarizeShown(index, 'Alice.md')).toStrictEqual(['Dan.md husband', 'Bob.md brother', 'Kid.md nieceOrNephew']);
-    expect(summarizeShown(index, 'Dan.md')).toStrictEqual(['Alice.md wife', 'Gran.md motherInLaw', 'Bob.md brotherInLaw']);
-    expect(summarizeShown(index, 'Carol.md')).toStrictEqual(['Gran.md grandmother', 'Bob.md uncle', 'Kid.md cousin']);
-    expect(summarizeShown(index, 'Gran.md')).toStrictEqual(['Carol.md granddaughter', 'Kid.md grandchild', 'Dan.md sonInLaw']);
+    expect(summarizeShown(index, 'Dan.md')).toStrictEqual(['Alice.md wife', 'Carol.md stepDaughter', 'Gran.md motherInLaw', 'Bob.md brotherInLaw']);
+    expect(summarizeShown(index, 'Carol.md')).toStrictEqual(['Dan.md stepFather', 'Gran.md grandmother', 'Bob.md uncle', 'Kid.md cousin']);
+    expect(summarizeShown(index, 'Gran.md')).toStrictEqual(['Ed.md lateHusband', 'Carol.md granddaughter', 'Kid.md grandchild', 'Dan.md sonInLaw']);
+  });
+
+  it('tells current, ex and late spouses apart, and leaves a step-parent who is a parent out', async () => {
+    const index = await createFamilyIndex();
+    expect(summarizeShown(index, 'Bob.md')).toContain('Fay.md exWife');
+    expect(summarizeShown(index, 'Fay.md')).toStrictEqual(['Bob.md exHusband']);
+    expect(summarizeShown(index, 'Ed.md')).toContain('Gran.md wife');
+    expect(summarizeShown(index, 'Gran.md')).toContain('Ed.md lateHusband');
+    expect(summarizeShown(index, 'Gran.md')).not.toContain('Ed.md husband');
+    expect(summarizeShown(index, 'Jo.md')).toStrictEqual([]);
+    expect(summarizeShown(index, 'Hal.md')).toStrictEqual(['Ivy.md wife']);
   });
 
   it('shows a stored relation by the gender of the note it describes', async () => {

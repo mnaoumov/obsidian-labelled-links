@@ -121,6 +121,10 @@ describe('PluginSettingsTab', () => {
       'mentions',
       'aunt = parent -> sibling',
       '|',
+      'spouse = partnership[!divorceDate] -> partner',
+      '!',
+      '[status: retired]',
+      'stepParent = parent -> spouse except parent',
       'birthMother < mother',
       'parent @ gender: female -> mother, male -> father'
     ]);
