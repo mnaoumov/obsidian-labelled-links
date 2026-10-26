@@ -342,6 +342,23 @@ export class RelationIndexComponent extends LayoutReadyComponent {
   }
 
   /**
+   * Gets the label to show for a relation, from the current registry: the variant the described note's property
+   * picks, or the label itself.
+   *
+   * @param label - The label.
+   * @param describedPath - The path of the note the label describes, `Bob` in `Bob is Alice's parent`.
+   * @returns The label to show.
+   */
+  public getShownLabel(label: string, describedPath: string): string {
+    if (this.registry.getLabelVariants(label) === null) {
+      return label;
+    }
+
+    const file = this.app.vault.getFileByPath(describedPath);
+    return this.registry.getShownLabel(label, file ? this.app.metadataCache.getFileCache(file)?.frontmatter : null);
+  }
+
+  /**
    * Gets how many notes and how many labelled references the index holds.
    *
    * @returns The counts.
@@ -613,7 +630,8 @@ export class RelationIndexComponent extends LayoutReadyComponent {
   }
 
   private triggerChanged(paths: null | readonly string[]): void {
-    // A derived relation can change when a note several links away changes, so with rules any note's may have.
-    this.events.trigger('changed', this.registry.hasRules ? null : paths);
+    // A derived relation can change when a note several links away changes, and a shown label when the property
+    // Of the note it describes does, so with rules or variants any note's may have.
+    this.events.trigger('changed', this.registry.hasRules || this.registry.hasLabelVariants ? null : paths);
   }
 }

@@ -7,7 +7,35 @@ Find them in Obsidian under **Settings → Community plugins → `Labelled Links
 ## General
 
 - `relationDefinitions`
-  - the relation registry, shown in the settings tab as **Relation registry**, one definition per line. `employee <-> employer` is a pair: a link labelled `employee` reads as `employer` from its target. `spouse <-> spouse` is a symmetric label. A lone `mentions` has no inverse, so it reads as itself from both ends, like every label the registry does not list. A line with `=` is a **composition rule**: `aunt = parent -> sibling` derives a note's `aunt` as its parent's sibling, and `|` separates alternative chains, as in `sibling-in-law = spouse -> sibling | sibling -> spouse`. Each step is a label as seen from the note the step starts at, inverse labels included, and a step may name another rule. A derived relation is never written into a note, never ends at the note it starts from, and is not shown when the note already stores the same label to the same note. A line with a single `<` declares a **sub-label**: `birthMother < mother` makes every `birthMother` link a kind of `mother` link. A query for `mother` still returns only `mother` links unless it asks for the wide meaning, through the API's `includeSubLabels` option or the **Include sub-labels** button of the relations pane. A sub-label may have sub-labels of its own and more than one superset. One with no pair of its own takes its superset's inverse, and when both have pairs the inverse is a sub-label too: with `birthMother <-> birthChild` and `mother <-> child`, `birthChild` is a kind of `child`. A rule's steps follow the narrow meaning unless the query asks for the wide one. A malformed line, a label, rule or sub-label defined a second time, a rule that reaches its own label (directly or through another rule), a rule longer than 8 links once its rules are expanded, and a sub-label line that makes a label a kind of itself are rejected with a message naming the line. The default is `parent <-> child`, `spouse <-> spouse` and `sibling <-> sibling`.
+  - the relation registry, shown in the settings tab as **Relation registry**, one definition per line. `employee <-> employer` is a pair: a link labelled `employee` reads as `employer` from its target. `spouse <-> spouse` is a symmetric label. A lone `mentions` has no inverse, so it reads as itself from both ends, like every label the registry does not list. A line with `=` is a **composition rule**: `aunt = parent -> sibling` derives a note's `aunt` as its parent's sibling, and `|` separates alternative chains, as in `sibling-in-law = spouse -> sibling | sibling -> spouse`. Each step is a label as seen from the note the step starts at, inverse labels included, and a step may name another rule. A derived relation is never written into a note, never ends at the note it starts from, and is not shown when the note already stores the same label to the same note. A line with a single `<` declares a **sub-label**: `birthMother < mother` makes every `birthMother` link a kind of `mother` link. A query for `mother` still returns only `mother` links unless it asks for the wide meaning, through the API's `includeSubLabels` option or the **Include sub-labels** button of the relations pane. A sub-label may have sub-labels of its own and more than one superset. One with no pair of its own takes its superset's inverse, and when both have pairs the inverse is a sub-label too: with `birthMother <-> birthChild` and `mother <-> child`, `birthChild` is a kind of `child`. A rule's steps follow the narrow meaning unless the query asks for the wide one. A malformed line, a label, rule or sub-label defined a second time, a rule that reaches its own label (directly or through another rule), a rule longer than 8 links once its rules are expanded, and a sub-label line that makes a label a kind of itself are rejected with a message naming the line. A line with `@` declares **label variants**: `parent @ gender: female -> mother, male -> father` shows a `parent` relation as `mother` or `father` by the `gender` property of the note the label describes, Bob in `Bob is Alice's parent`. The value is compared ignoring case, a list property matches on any of its values, and with the property empty or unmatched the label shows as it is. Variants change only what is shown: queries and the API keep the stored label. The default is `parent <-> child`, `spouse <-> spouse` and `sibling <-> sibling`.
+- `includedPresets`
+  - the bundled presets included in the registry, shown in the settings tab as one toggle per preset, with its version and its lines. A preset's lines are read after the registry's, so a line of yours that defines the same label wins, and the settings tab strikes through each preset line yours overrides. The one preset bundled today is `family`. The default is none.
+
+## The Family preset
+
+The Family preset models kinship with nothing but the mechanisms above, so you can read it as an example as well as use it. It stores `parent` (legal parents, adoption included, of any gender) and its subset `birthParent`, and a partnership note that links both partners as `partner`, with `marriageDate` and `divorceDate` as plain properties. From those it derives spouse, sibling, grandparent and grandchild, aunt or uncle, niece or nephew, cousin, and the in-laws. Each label shows as its gendered variant by the `gender` property: mother or father, wife or husband, sister or brother, and so on.
+
+Step-parents and step-children are not in it yet: deriving them needs a way to leave out one's own parent, which a rule cannot say. Telling a current partner from an ex by `divorceDate` is left out for the same reason.
+
+```code-button
+---
+caption: Include the Family preset and open Lily
+---
+await require('/demoSetup.ts').includeFamilyPreset(app);
+await require('/demoSetup.ts').openRelationsPane(app, 'Materials/02 Settings/Lily.md');
+```
+
+Manual equivalent: switch on **Family preset** in the settings tab, then open [Lily](<./Materials/02 Settings/Lily.md>) with the relations pane open.
+
+Lily's parents Tom and Ann are listed under `father` and `mother`, and the **Derived** section has Rose under `grandmother`. Open [Ann](<./Materials/02 Settings/Ann.md>) and Tom is her `husband` through the partnership note [Tom and Ann](<./Materials/02 Settings/Tom and Ann.md>), with Rose as her `motherInLaw`. Use the reset button below to take the preset out again.
+
+To write a preset of your own, put its lines in the registry. An org chart, for example:
+
+```text
+manager <-> report
+colleague <-> colleague
+colleague = manager -> report
+```
 
 ## Try it
 
@@ -31,7 +59,7 @@ caption: Reset the registry to its default
 await require('/demoSetup.ts').resetRelationDefinitions(app);
 ```
 
-Manual equivalent: delete the line you added.
+Manual equivalent: delete the line you added, and switch off any preset you included.
 
 ## Try a composition rule
 

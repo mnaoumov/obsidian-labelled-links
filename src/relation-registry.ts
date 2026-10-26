@@ -20,6 +20,43 @@ export interface CompositionRule {
 }
 
 /**
+ * One choice of a {@link LabelVariants} line: `female -> mother`.
+ */
+export interface LabelVariant {
+  /**
+   * The label shown when the property holds {@link LabelVariant.value}.
+   */
+  readonly label: string;
+
+  /**
+   * The property value that picks this variant, compared ignoring case.
+   */
+  readonly value: string;
+}
+
+/**
+ * A `label @ property: value -> variant, ...` line of the registry: `parent @ gender: female -> mother, male ->
+ * father` shows a `parent` relation as `mother` or `father`, by the `gender` property of the note the label
+ * describes.
+ */
+export interface LabelVariants {
+  /**
+   * The label the variants replace.
+   */
+  readonly label: string;
+
+  /**
+   * The property of the described note that picks the variant.
+   */
+  readonly propertyName: string;
+
+  /**
+   * The variants, in the order the line writes them.
+   */
+  readonly variants: readonly LabelVariant[];
+}
+
+/**
  * The result of {@link parseRelationDefinitions}.
  */
 export interface ParseRelationDefinitionsResult {
@@ -32,6 +69,11 @@ export interface ParseRelationDefinitionsResult {
    * One message per line that could not be used, empty when every line is valid.
    */
   readonly errors: string[];
+
+  /**
+   * The label variants parsed from the valid `label @ property: value -> variant` lines.
+   */
+  readonly labelVariants: LabelVariants[];
 
   /**
    * The composition rules parsed from the valid rule lines.
@@ -97,11 +139,29 @@ const CHAIN_SEPARATOR = '|';
 
 const STEP_SEPARATOR = '->';
 
+const VARIANTS_SEPARATOR = '@';
+
+const VARIANTS_REG_EXP = /^(?<label>[^@]+?)\s*@\s*(?<propertyName>[^:@]+?)\s*:\s*(?<variants>[^@]+)$/u;
+
+const VARIANT_SEPARATOR = ',';
+
+const VARIANT_REG_EXP = /^(?<value>.+?)\s*->\s*(?<label>.+)$/u;
+
 /**
- * The relation registry: which label is the inverse of which, which labels are derived by composition rules, and
- * which labels are kinds of other labels. Lookups ignore case, the way Obsidian treats property names.
+ * The relation registry: which label is the inverse of which, which labels are derived by composition rules,
+ * which labels are kinds of other labels, and which labels are shown as variants by a property. Lookups ignore
+ * case, the way Obsidian treats property names.
  */
 export class RelationRegistry {
+  /**
+   * Whether the registry holds any label variants.
+   *
+   * @returns Whether it does.
+   */
+  public get hasLabelVariants(): boolean {
+    return this.labelVariants.size > 0;
+  }
+
   /**
    * Whether the registry holds any composition rule.
    *
@@ -112,6 +172,7 @@ export class RelationRegistry {
   }
 
   private readonly inverseLabels = new Map<string, null | string>();
+  private readonly labelVariants = new Map<string, LabelVariants>();
   private readonly rules = new Map<string, CompositionRule>();
   private readonly superLabels = new Map<string, string[]>();
 
@@ -126,8 +187,18 @@ export class RelationRegistry {
    * @param definitions - The definitions, as {@link parseRelationDefinitions} returns them.
    * @param rules - The composition rules, as {@link parseRelationDefinitions} returns them.
    * @param subLabels - The sub-labels, as {@link parseRelationDefinitions} returns them.
+   * @param labelVariants - The label variants, as {@link parseRelationDefinitions} returns them.
    */
-  public constructor(definitions: readonly RelationDefinition[], rules: readonly CompositionRule[] = [], subLabels: readonly SubLabelDefinition[] = []) {
+  public constructor(
+    definitions: readonly RelationDefinition[],
+    rules: readonly CompositionRule[] = [],
+    subLabels: readonly SubLabelDefinition[] = [],
+    labelVariants: readonly LabelVariants[] = []
+  ) {
+    for (const variants of labelVariants) {
+      this.labelVariants.set(normalizeLabel(variants.label), variants);
+    }
+
     for (const definition of definitions) {
       this.register(definition.label, definition.inverseLabel);
       if (definition.inverseLabel !== null) {
@@ -167,6 +238,16 @@ export class RelationRegistry {
    */
   public getInverseLabel(label: string): null | string {
     return this.inverseLabels.get(normalizeLabel(label)) ?? null;
+  }
+
+  /**
+   * Gets the variants a label is shown as.
+   *
+   * @param label - The label.
+   * @returns The variants, or `null` when the label has none.
+   */
+  public getLabelVariants(label: string): LabelVariants | null {
+    return this.labelVariants.get(normalizeLabel(label)) ?? null;
   }
 
   /**
@@ -212,6 +293,26 @@ export class RelationRegistry {
    */
   public getRules(): CompositionRule[] {
     return [...this.rules.values()];
+  }
+
+  /**
+   * Gets the label to show for a relation: the variant the described note's property picks, or the label itself.
+   *
+   * @param label - The label.
+   * @param frontmatter - The frontmatter of the note the label describes, `Bob` in `Bob is Alice's parent`.
+   * @returns The variant, or the label when it has no variants or none matches the property.
+   */
+  public getShownLabel(label: string, frontmatter: null | Readonly<Record<string, unknown>> | undefined): string {
+    const labelVariants = this.getLabelVariants(label);
+    if (!labelVariants || !frontmatter) {
+      return label;
+    }
+
+    const propertyKey = normalizeLabel(labelVariants.propertyName);
+    const propertyName = Object.keys(frontmatter).find((key) => normalizeLabel(key) === propertyKey);
+    const value: unknown = propertyName === undefined ? undefined : frontmatter[propertyName];
+    const values = new Set((Array.isArray(value) ? value as unknown[] : [value]).filter((item) => typeof item === 'string').map((item) => normalizeLabel(item)));
+    return labelVariants.variants.find((variant) => values.has(normalizeLabel(variant.value)))?.label ?? label;
   }
 
   /**
@@ -292,14 +393,18 @@ export function normalizeLabel(label: string): string {
  *
  * @param lines - One definition per line: `label <-> inverse`, `label <-> label` for a symmetric label, a
  * lone `label` for a label with no inverse, `label = step -> step | step` for a composition rule, or
- * `label < superLabel` for a label that is a kind of another.
- * @returns The definitions, rules and sub-labels, and a message for each line that is malformed, redefines a
- * label, is a rule that reaches itself or chains too many links, or makes a label a kind of itself.
+ * `label < superLabel` for a label that is a kind of another, or `label @ property: value -> variant, ...` for
+ * the variants a label is shown as.
+ * @returns The definitions, rules, sub-labels and label variants, and a message for each line that is malformed,
+ * redefines a label, is a rule that reaches itself or chains too many links, or makes a label a kind of itself.
+ * A line that redefines a label loses to the earlier line, so lines put after the user's own can never override
+ * them.
  */
 export function parseRelationDefinitions(lines: readonly string[]): ParseRelationDefinitionsResult {
   const definitions: RelationDefinition[] = [];
   const errors: string[] = [];
   const definedLabels = new Set<string>();
+  const labelVariants = new Map<string, LabelVariants>();
   const ruleLines = new Map<string, string>();
   const rules = new Map<string, CompositionRule>();
   const subLabels: SubLabelDefinition[] = [];
@@ -307,6 +412,23 @@ export function parseRelationDefinitions(lines: readonly string[]): ParseRelatio
   for (const rawLine of lines) {
     const line = rawLine.trim();
     if (line === '') {
+      continue;
+    }
+
+    if (line.includes(VARIANTS_SEPARATOR)) {
+      const variants = parseVariantsLine(line);
+      if (variants === null) {
+        errors.push(`"${line}" is not a label variant line. Write "label @ property: value -> variant, value -> variant".`);
+        continue;
+      }
+
+      const key = normalizeLabel(variants.label);
+      if (labelVariants.has(key)) {
+        errors.push(`"${line}" defines the variants of "${variants.label}" again. Each label's variants can be defined once.`);
+        continue;
+      }
+
+      labelVariants.set(key, variants);
       continue;
     }
 
@@ -359,7 +481,13 @@ export function parseRelationDefinitions(lines: readonly string[]): ParseRelatio
     definitions.push(definition);
   }
 
-  return { definitions, errors: [...errors, ...validateRules(rules, ruleLines)], rules: [...rules.values()], subLabels };
+  return {
+    definitions,
+    errors: [...errors, ...validateRules(rules, ruleLines)],
+    labelVariants: [...labelVariants.values()],
+    rules: [...rules.values()],
+    subLabels
+  };
 }
 
 /**
@@ -460,6 +588,28 @@ function parseRuleLine(line: string): CompositionRule | null {
     .map((chain) => chain.split(STEP_SEPARATOR).map((step) => step.trim()));
   const isValid = isValidRuleLabel(label) && chains.every((chain) => chain.every((step) => isValidRuleLabel(step)));
   return isValid ? { chains, label } : null;
+}
+
+function parseVariantsLine(line: string): LabelVariants | null {
+  const match = VARIANTS_REG_EXP.exec(line);
+  if (!match) {
+    return null;
+  }
+
+  const label = getMandatoryNamedGroup(match, 'label');
+  const propertyName = getMandatoryNamedGroup(match, 'propertyName').trim();
+  const variants: LabelVariant[] = [];
+  for (const part of getMandatoryNamedGroup(match, 'variants').split(VARIANT_SEPARATOR)) {
+    const variantMatch = VARIANT_REG_EXP.exec(part.trim());
+    const value = variantMatch ? getMandatoryNamedGroup(variantMatch, 'value') : '';
+    const variantLabel = variantMatch ? getMandatoryNamedGroup(variantMatch, 'label') : '';
+    if (!isValidRuleLabel(value) || !isValidRuleLabel(variantLabel) || variants.some((variant) => normalizeLabel(variant.value) === normalizeLabel(value))) {
+      return null;
+    }
+    variants.push({ label: variantLabel, value });
+  }
+
+  return isValidRuleLabel(label) && propertyName !== '' ? { label, propertyName, variants } : null;
 }
 
 /**

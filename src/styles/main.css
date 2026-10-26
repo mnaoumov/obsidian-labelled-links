@@ -80,6 +80,17 @@
   white-space: nowrap;
 }
 
+/* A preset's lines, under its toggle in the settings. */
+.labelled-links-preset-lines {
+  margin: var(--size-4-1) 0 0;
+  padding-left: var(--size-4-4);
+}
+
+/* A preset line the user's own registry overrides. */
+.labelled-links-preset-line-overridden code {
+  text-decoration: line-through;
+}
+
 /* The relation registry field, wide enough for a pair like `employee <-> employer` on one line. */
 .labelled-links-registry {
   max-width: 100%;

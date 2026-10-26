@@ -6,23 +6,37 @@ import { SettingEx } from '@mnaoumov/obsidian-lib/setting-ex';
 import { AsyncEvents } from '@mnaoumov/typescript-lib/async-events';
 import { noopAsync } from '@mnaoumov/typescript-lib/function';
 import { castTo } from '@mnaoumov/typescript-lib/object-utils';
+import { ensureGenericObject } from '@mnaoumov/typescript-lib/type-guards';
 import { strictProxy } from '@mnaoumov/typescript-test-toolkit/strict-proxy';
-import { App } from 'obsidian-test-mocks/obsidian';
 import {
+  App,
+  ToggleComponent
+} from 'obsidian-test-mocks/obsidian';
+import {
+  beforeAll,
   describe,
   expect,
-  it
+  it,
+  vi
 } from 'vitest';
 
 import type { Plugin } from './plugin.ts';
 
 import { PluginSettingsComponent } from './plugin-settings-component.ts';
 import { PluginSettingsTab } from './plugin-settings-tab.ts';
+import { FAMILY_PRESET } from './relation-presets.ts';
+
+interface TabFixture {
+  readonly pluginSettingsComponent: PluginSettingsComponent;
+  readonly tab: PluginSettingsTab;
+}
 
 class MockDataHandler implements DataHandler {
+  public constructor(private readonly data: unknown) {}
+
   public async loadData(): Promise<unknown> {
     await noopAsync();
-    return {};
+    return this.data;
   }
 
   public async saveData(): Promise<void> {
@@ -30,15 +44,32 @@ class MockDataHandler implements DataHandler {
   }
 }
 
-async function createTab(): Promise<PluginSettingsTab> {
+// `PluginSettingsTabBase.bind()` reads `setPlaceholderValue` to tell a text-based component from the others, and
+// The mock toggle, a strict proxy, throws on a member it does not have.
+beforeAll(() => {
+  const prototype = ensureGenericObject(ToggleComponent.prototype);
+  if (!('setPlaceholderValue' in prototype)) {
+    prototype['setPlaceholderValue'] = undefined;
+  }
+});
+
+async function createTab(data: unknown = {}): Promise<TabFixture> {
   const app = App.createConfigured__();
   const pluginSettingsComponent = new PluginSettingsComponent({
-    dataHandler: new MockDataHandler(),
+    dataHandler: new MockDataHandler(data),
     pluginEventSource: new AsyncEvents<PluginEventMap>()
   });
   await pluginSettingsComponent.loadWithPromises();
   const plugin = strictProxy<Plugin>({ app: app.asOriginalType__() });
-  return new PluginSettingsTab({ plugin, pluginSettingsComponent });
+  return { pluginSettingsComponent, tab: new PluginSettingsTab({ plugin, pluginSettingsComponent }) };
+}
+
+function getToggle(setting: SettingEx | undefined): ToggleComponent {
+  const toggle = setting?.components.find((component) => component instanceof ToggleComponent);
+  if (!(toggle instanceof ToggleComponent)) {
+    throw new TypeError('The setting has no toggle.');
+  }
+  return toggle;
 }
 
 /**
@@ -66,13 +97,13 @@ function renderRows(tab: PluginSettingsTab): SettingEx[] {
 }
 
 describe('PluginSettingsTab', () => {
-  it('declares the relation registry row', async () => {
-    const tab = await createTab();
-    expect(tab.getSettingDefinitions().map((definition) => 'name' in definition ? definition.name : '')).toStrictEqual(['Relation registry']);
+  it('declares the relation registry row and a row per bundled preset', async () => {
+    const { tab } = await createTab();
+    expect(tab.getSettingDefinitions().map((definition) => 'name' in definition ? definition.name : '')).toStrictEqual(['Relation registry', 'Family preset']);
   });
 
   it('renders the registry as a multi-line text area showing one definition per line', async () => {
-    const tab = await createTab();
+    const { tab } = await createTab();
     const [setting] = renderRows(tab);
     const textArea = setting?.controlEl.querySelector('textarea');
     expect(textArea?.rows).toBe(8);
@@ -81,10 +112,46 @@ describe('PluginSettingsTab', () => {
   });
 
   it('shows the registry examples as rendered inline code', async () => {
-    const tab = await createTab();
+    const { tab } = await createTab();
     const [setting] = renderRows(tab);
     const codeEls = [...setting?.descEl.querySelectorAll('code') ?? []];
-    expect(codeEls.map((codeEl) => codeEl.textContent)).toStrictEqual(['employee <-> employer', 'spouse <-> spouse', 'mentions', 'aunt = parent -> sibling', '|', 'birthMother < mother']);
+    expect(codeEls.map((codeEl) => codeEl.textContent)).toStrictEqual([
+      'employee <-> employer',
+      'spouse <-> spouse',
+      'mentions',
+      'aunt = parent -> sibling',
+      '|',
+      'birthMother < mother',
+      'parent @ gender: female -> mother, male -> father'
+    ]);
     expect(codeEls.every((codeEl) => codeEl.parentElement?.matches('.markdown-rendered.code'))).toBe(true);
+  });
+
+  it('lists a preset\'s version and lines, marking the ones the user\'s registry overrides', async () => {
+    const { tab } = await createTab({ relationDefinitions: ['parent <-> kid'] });
+    const [, setting] = renderRows(tab);
+    expect(setting?.descEl.textContent).toContain(`Version ${FAMILY_PRESET.version}.`);
+    const itemEls = [...setting?.descEl.querySelectorAll(':scope .labelled-links-preset-lines li') ?? []];
+    expect(itemEls.map((itemEl) => itemEl.querySelector('code')?.textContent)).toStrictEqual(FAMILY_PRESET.lines);
+    expect(itemEls.filter((itemEl) => itemEl.hasClass('labelled-links-preset-line-overridden')).map((itemEl) => itemEl.querySelector('code')?.textContent))
+      .toStrictEqual(['parent <-> child']);
+  });
+
+  it('includes a preset when its toggle is switched on, and removes it when switched off', async () => {
+    const { pluginSettingsComponent, tab } = await createTab();
+    const [, setting] = renderRows(tab);
+    const toggle = getToggle(setting);
+    expect(toggle.getValue()).toBe(false);
+
+    // The bound toggle writes the setting asynchronously.
+    toggle.setValue(true);
+    await vi.waitFor(() => {
+      expect(pluginSettingsComponent.settings.includedPresets).toStrictEqual(['family']);
+    });
+
+    toggle.setValue(false);
+    await vi.waitFor(() => {
+      expect(pluginSettingsComponent.settings.includedPresets).toStrictEqual([]);
+    });
   });
 });

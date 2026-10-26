@@ -211,6 +211,20 @@ describe('RelationIndexComponent sub-labels', () => {
   });
 });
 
+describe('RelationIndexComponent label variants', () => {
+  it('reports every change as a change to any note while the registry has a variant', async () => {
+    const { app, index } = await createIndex();
+    const { definitions, labelVariants } = parseRelationDefinitions(['employee <-> employer', 'employee @ role: lead -> lead']);
+    index.setRegistry(new RelationRegistry(definitions, [], [], labelVariants));
+    index.getRelations('Bob.md');
+    const handler = vi.fn();
+    index.on('changed', handler);
+    const file = getFile(app, 'Bob.md');
+    app.metadataCache.trigger('changed', file, '---\nrole: lead\n---\n', ensureNonNullable(app.metadataCache.getFileCache(file)));
+    expect(handler).toHaveBeenCalledWith(null);
+  });
+});
+
 describe('RelationIndexComponent', () => {
   it('lists a note\'s outgoing relations and plain links, unresolved targets included', async () => {
     const { index } = await createIndex();

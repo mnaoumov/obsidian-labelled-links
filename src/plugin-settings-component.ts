@@ -4,6 +4,7 @@ import type { PluginEventSource } from '@mnaoumov/obsidian-lib/plugin/plugin-eve
 import { PluginSettingsComponentBase } from '@mnaoumov/obsidian-lib/components/plugin-settings-component';
 
 import { PluginSettings } from './plugin-settings.ts';
+import { getIncludedPresetLines } from './relation-presets.ts';
 import {
   parseRelationDefinitions,
   RelationRegistry
@@ -27,13 +28,17 @@ export class PluginSettingsComponent extends PluginSettingsComponentBase<PluginS
   }
 
   /**
-   * Builds the relation registry from the current settings. Lines that fail validation are left out.
+   * Builds the relation registry from the current settings: the user's lines, then the included presets' lines,
+   * so a user's line wins over a preset line defining the same label. Lines that fail validation are left out.
    *
    * @returns The registry.
    */
   public createRelationRegistry(): RelationRegistry {
-    const { definitions, rules, subLabels } = parseRelationDefinitions(this.settings.relationDefinitions);
-    return new RelationRegistry(definitions, rules, subLabels);
+    const { definitions, labelVariants, rules, subLabels } = parseRelationDefinitions([
+      ...this.settings.relationDefinitions,
+      ...getIncludedPresetLines(this.settings.includedPresets)
+    ]);
+    return new RelationRegistry(definitions, rules, subLabels, labelVariants);
   }
 
   protected override registerValidators(): void {

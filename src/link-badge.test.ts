@@ -63,6 +63,23 @@ describe('getLinkBadge', () => {
     });
   });
 
+  it('shows the label and its inverse as the variants the described notes pick', async () => {
+    const app = App.createConfigured__({
+      files: { 'Ann.md': 'child:: [[Ben]]\n', 'Ben.md': '---\ngender: male\n---\n' }
+    });
+    const index = new RelationIndexComponent(app.asOriginalType__());
+    index.load();
+    const { definitions, labelVariants } = parseRelationDefinitions(['parent <-> child', 'child @ gender: male -> son', 'parent @ gender: female -> mother']);
+    index.setRegistry(new RelationRegistry(definitions, [], [], labelVariants));
+    await index.rebuild();
+    const [ben] = getPositionedRelations(index, 'Ann.md');
+    // Ann has no gender, so her parent label stays as it is.
+    expect(getLinkBadge(index, ensureNonNullable(ben))).toEqual({
+      label: 'son',
+      tooltip: 'Ben is Ann\'s son\nAnn is Ben\'s parent'
+    });
+  });
+
   it('gives a plain link no badge', async () => {
     const index = await createIndex();
     const carol = getPositionedRelations(index, 'Alice.md')[1];

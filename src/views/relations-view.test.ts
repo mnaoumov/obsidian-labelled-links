@@ -194,6 +194,54 @@ describe('RelationsView', () => {
     expect(derivedEls[1]?.querySelector('.labelled-links-relation-link')?.hasClass('is-unresolved')).toBe(true);
   });
 
+  it('groups and phrases a label with variants by the variant the described note picks', async () => {
+    const app = App.createConfigured__({
+      files: {
+        'Dad.md': '---\ngender: male\n---\nchild:: [[Kid]]\n',
+        'Gran.md': '---\ngender: female\n---\n',
+        'Kid.md': '---\ngender: female\nparent: "[[Mum]]"\nbirthParent: "[[Dad]]"\n---\n',
+        'Mum.md': '---\ngender: female\nparent: "[[Gran]]"\n---\n'
+      }
+    });
+    const index = new RelationIndexComponent(app.asOriginalType__());
+    index.load();
+    const { definitions, labelVariants, rules, subLabels } = parseRelationDefinitions([
+      'parent <-> child',
+      'birthParent < parent',
+      'grandparent = parent -> parent',
+      'parent @ gender: female -> mother, male -> father',
+      'birthParent @ gender: male -> birthFather',
+      'child @ gender: female -> daughter',
+      'grandparent @ gender: female -> grandmother'
+    ]);
+    index.setRegistry(new RelationRegistry(definitions, rules, subLabels, labelVariants));
+    await index.rebuild();
+    const view = new RelationsView({ leaf: WorkspaceLeaf.create2__(app).asOriginalType3__(), relationIndex: index });
+    await view.setFile(getFile(app, 'Kid.md'));
+    expect(readPane(view)).toStrictEqual([
+      {
+        groups: [
+          { label: 'birthFather', rows: ['Dad'] },
+          { label: 'mother', rows: ['Mum'] }
+        ],
+        title: 'Outgoing'
+      },
+      { groups: [{ label: 'father', rows: ['Dad | Kid is Dad\'s daughter'] }], title: 'Incoming' },
+      { groups: [{ label: 'grandmother', rows: ['Gran | Gran is Kid\'s grandmother'] }], title: 'Derived' }
+    ]);
+    expect(view.contentEl.querySelector(':scope .labelled-links-relation-derived .labelled-links-relation-sentence')?.getAttribute('aria-label'))
+      .toBe('Gran is Kid\'s grandmother: Kid\'s mother Mum\'s mother');
+
+    await view.setIncludeSubLabels(true);
+    expect(readPane(view)[0]).toStrictEqual({
+      groups: [
+        { label: 'father', rows: ['Dad | birthFather'] },
+        { label: 'mother', rows: ['Mum'] }
+      ],
+      title: 'Outgoing'
+    });
+  });
+
   it('lists sub-label relations in their widest superset\'s group, each naming its label, and derives through them', async () => {
     const app = App.createConfigured__({
       files: {
