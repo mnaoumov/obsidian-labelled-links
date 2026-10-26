@@ -131,6 +131,8 @@ Manual equivalent: unloading the component that registered the event, which a pl
 
 ## Reaching the API from a plugin
 
+Beside `api.d.ts`, the repo-root `api-contract.ts` holds the API's contract, `LABELLED_LINKS_API_CONTRACT`: for every method, a schema over its arguments and a schema over what it returns. It is the constant this plugin publishes with the API, so copy it next to `api.d.ts` and pass it as the `contract`, and both sides check the same definition. Besides `./api.d.ts` and `obsidian` it imports from one package, [`@mnaoumov/typescript-lib`](https://www.npmjs.com/package/@mnaoumov/typescript-lib), whose `api-contract` entry point carries the contract type, the [Standard Schema](https://standardschema.dev) builders and the common guards, so add that package to your project when you copy the file. (It is not named `api.ts`: TypeScript would read `api.d.ts` as that file's own declarations.)
+
 ```ts
 import { watchPluginApi } from '@mnaoumov/obsidian-lib/plugin/plugin-api';
 
@@ -145,9 +147,20 @@ const labelledLinksApiRef = watchPluginApi<LabelledLinksApi>({
   contract: LABELLED_LINKS_API_CONTRACT,
   pluginId: 'labelled-links'
 });
+
+const labelledLinksApi = labelledLinksApiRef.value;
+if (labelledLinksApi) {
+  console.log(labelledLinksApi.getRelations('People/Alice.md', { direction: 'outgoing', label: 'child' }));
+  // With `birthMother < mother` in the registry, the `birthMother` links too.
+  console.log(labelledLinksApi.getRelations('People/Bob.md', { includeSubLabels: true, label: 'mother' }));
+  console.log(labelledLinksApi.getInverseLabel('child'));
+  console.log(labelledLinksApi.getDerivedRelations('People/Erin.md', { label: 'aunt' }));
+}
 ```
 
-`labelledLinksApiRef.value` is `null` while `Labelled Links` is not loaded, and becomes non-`null` on its own when it is, so a consumer never has to care about plugin load order. A one-off lookup with no component to own a watch, like the buttons above, uses `findPluginApi` with the same `apiVersionRange` and `pluginId`. The contract version is **`1.1.0`**, which added `getDerivedRelations`, and moves independently of the plugin's own version, which is why the range asks for `^1.1.0` rather than naming one.
+`labelledLinksApiRef.value` is `null` while `Labelled Links` is not loaded, and becomes non-`null` on its own when it is, so a consumer never has to care about plugin load order. A one-off lookup with no component to own a watch, like the buttons above, uses `findPluginApi` with the same `apiVersionRange`, `contract` and `pluginId`. The contract version is **`1.2.0`** (`1.1.0` added `getDerivedRelations`, `1.2.0` the `includeSubLabels` option), and moves independently of the plugin's own version, which is why the range asks for `^1.2.0` rather than naming one.
+
+The index fills once the workspace layout is ready, so a query before that answers with no relations, and the event with `paths: null` says when it is filled. The [Cross-plugin APIs](https://mnaoumov.dev/obsidian-lib/guides/cross-plugin-apis/) guide covers the registry from the inside. If you would rather not depend on [`@mnaoumov/obsidian-lib`](https://www.npmjs.com/package/@mnaoumov/obsidian-lib) for that, the registry is a documented wire protocol you can read with nothing but `obsidian`: see [Plugin API protocol](https://mnaoumov.dev/obsidian-lib/guides/plugin-api-protocol/).
 
 Subscribing to the event needs no API handle at all:
 
