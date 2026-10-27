@@ -60,21 +60,21 @@ const REGISTRY_DEFINITIONS = ['parent <-> child', 'spouse <-> spouse', 'sibling 
  * The part of Electron's `BrowserWindow` the capture sizes the window with.
  */
 interface ElectronBrowserWindow {
-  setContentSize: (width: number, height: number) => void;
+  readonly setContentSize: (width: number, height: number) => void;
 }
 
 /**
  * Electron's remote module, which reaches the main-process window from the renderer.
  */
 interface ElectronRemote {
-  getCurrentWindow: () => ElectronBrowserWindow;
+  readonly getCurrentWindow: () => ElectronBrowserWindow;
 }
 
 /**
  * The desktop renderer's window, which can load Electron's remote module.
  */
 interface ElectronWindow extends Window {
-  require: (id: '@electron/remote') => ElectronRemote;
+  readonly require: (id: '@electron/remote') => ElectronRemote;
 }
 
 type NoteMode = 'live-preview' | 'reading';
