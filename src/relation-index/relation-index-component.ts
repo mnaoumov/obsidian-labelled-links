@@ -210,7 +210,7 @@ interface RelationIndexComponentSetReferencesParams {
  */
 // eslint-disable-next-line @typescript-eslint/consistent-type-definitions -- An event map has to be a type alias to satisfy the index-signature constraint.
 type RelationIndexEventMap = {
-  changed: [paths: null | readonly string[]];
+  readonly changed: [paths: null | readonly string[]];
 };
 
 /**

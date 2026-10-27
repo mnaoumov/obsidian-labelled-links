@@ -43,7 +43,7 @@ export interface LabelledLinksApi {
    * @param options - Filters by rule label, and whether labels take their wide meaning.
    * @returns The derived relations, in rule order.
    */
-  getDerivedRelations: (pathOrFile: string | TFile, options?: LabelledLinksGetDerivedRelationsOptions) => LabelledLinksDerivedRelation[];
+  readonly getDerivedRelations: (pathOrFile: string | TFile, options?: LabelledLinksGetDerivedRelationsOptions) => LabelledLinksDerivedRelation[];
 
   /**
    * Gets the label a relation carries when it is seen from its target, from the relation definitions in the
@@ -53,7 +53,7 @@ export interface LabelledLinksApi {
    * @returns The inverse label, the label itself for a symmetric one, or `null` when the definitions have no
    * inverse for it.
    */
-  getInverseLabel: (label: string) => null | string;
+  readonly getInverseLabel: (label: string) => null | string;
 
   /**
    * Gets the relations of a note: the labelled relations, the plain links and the backlinks.
@@ -64,7 +64,7 @@ export interface LabelledLinksApi {
    * @param options - Filters by direction and label, and whether the label takes its wide meaning.
    * @returns The relations, outgoing first.
    */
-  getRelations: (pathOrFile: string | TFile, options?: LabelledLinksGetRelationsOptions) => LabelledLinksRelation[];
+  readonly getRelations: (pathOrFile: string | TFile, options?: LabelledLinksGetRelationsOptions) => LabelledLinksRelation[];
 }
 
 /**

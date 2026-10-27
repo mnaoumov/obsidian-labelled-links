@@ -34,11 +34,12 @@ import {
 } from './relations-pane/relations-view.ts';
 
 interface AppGlobal {
+  // eslint-disable-next-line typescript-dev-toolkit/readonly-interface-members -- Test setup replaces the global app before each test.
   app: AppOriginal;
 }
 
 interface PluginApisReader {
-  getPluginApis: () => PluginApiDeclaration[];
+  readonly getPluginApis: () => PluginApiDeclaration[];
 }
 
 interface PluginWithSettings {
