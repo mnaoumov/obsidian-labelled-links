@@ -55,18 +55,22 @@ A copy of the vault ships with every release. You can access it via any of the f
 - **A badge on each labelled link** shows its label in Live Preview and Reading view, with a tooltip reading it both ways. [04 Link badges](<./demo-vault/04 Link badges.md>)
 - **A typed API and a change event** let other plugins and scripts query a note's relations. [05 For plugin developers](<./demo-vault/05 For plugin developers.md>)
 
-## Similar plugins
+## See also
 
-- [`Breadcrumbs`](https://community.obsidian.md/plugins/breadcrumbs) — builds typed links from properties, tags, lists, naming schemes, folders and `Dataview` into a hierarchy, with implied inverse relations, a breadcrumb trail, tree and matrix views, previous and next buttons and diagrams; it has no badge on the link itself and no inverse-label sentences, and this plugin leaves hierarchy navigation to it.
-- [`Minder Nexus`](https://community.obsidian.md/plugins/minder-nexus) — reads link types from an alias (`[[Note|type]]`) or an inline field, shows type badges in Live Preview and Reading view, groups backlinks by type, and can write the inverse type into the linked note's properties; this plugin never writes an inverse into a note, and adds composition rules, sub-labels and a query API.
-- [`Relation Sync`](https://community.obsidian.md/plugins/relation-sync) — writes the inverse of each relation property into the linked note's frontmatter, from declared pairs such as `mother` and `child`, with a preview before it changes anything; this plugin works the inverse out in memory instead.
-- [`Nodian`](https://community.obsidian.md/plugins/nodian) — writes a backlink into the matching frontmatter field of the note a field links to, so both notes store the relation.
-- [`Relations Suite`](https://community.obsidian.md/plugins/relations-suite) — writes reciprocal relation properties, with built-in family logic and custom pairs, and draws a family tree and a relations graph with the shortest path between two people.
-- [`Relate`](https://community.obsidian.md/plugins/relate) — writes two-way relationships into ordinary properties from declared pairs, and adds a connections panel and a search that understands relationships (`children of Atlas`).
-- [`Wikilink Types`](https://community.obsidian.md/plugins/wikilink-types) — lets you type `@type` inside a wikilink's alias, with autocomplete, and copies each type into frontmatter for other plugins to read; it shows no inverse.
-- [`Graph Link Types`](https://community.obsidian.md/plugins/graph-link-types) — draws the property or inline-field name of a link on its edge in the graph view, through `Dataview`; this plugin labels links in the editor and the pane, not the graph.
-- [`Graph Edge Notes`](https://community.obsidian.md/plugins/graph-edge-notes) — draws short relationship labels, kept in a frontmatter list, on graph-view edges, with hover details.
-- [`Typed Links`](https://github.com/Querulantenkind/obsidian-typed-links-plugin) (unlisted) — adds a `[[type::Target]]` link syntax, shown as a badge, with a panel of incoming and outgoing typed links and a graph coloured by type; this plugin uses only plain properties and inline fields, so a vault stays readable without it.
+[My other Obsidian resources](https://github.com/mnaoumov/obsidian-resources)
+
+| Plugin | Features | How `Labelled Links` differs |
+| --- | --- | --- |
+| [`Breadcrumbs`](https://community.obsidian.md/plugins/breadcrumbs) | Typed hierarchies from properties, tags, lists and names; implied relations; navigation and diagrams | Overlaps on typed relations; link badges and inverse-label sentences; leaves hierarchy navigation to `Breadcrumbs` |
+| [`Graph Edge Notes`](https://community.obsidian.md/plugins/graph-edge-notes) | Frontmatter relationship labels on graph edges; hover detail | Different display: editor links and relations pane rather than graph edges |
+| [`Graph Link Types`](https://community.obsidian.md/plugins/graph-link-types) | Property/inline-field labels on graph edges through `Dataview` | Different display: editor links and relations pane rather than graph edges |
+| [`Minder Nexus`](https://community.obsidian.md/plugins/minder-nexus) | Alias/inline-field types; badges; grouped backlinks; writes inverse properties | Same typed-link goal; inverses stay in memory; composition rules, sub-labels and query API |
+| [`Nodian`](https://community.obsidian.md/plugins/nodian) | Copies backlinks into matching relation properties | Alternative inverse handling: computes in memory; no reciprocal property writes |
+| [`Relate`](https://community.obsidian.md/plugins/relate) | Declared two-way property pairs; connections panel; relationship search | Overlaps on relations; in-memory inverses and link labels; no reciprocal property writes |
+| [`Relation Sync`](https://community.obsidian.md/plugins/relation-sync) | Declared property pairs; previewed inverse writes | Alternative inverse handling: computes in memory; no reciprocal property writes |
+| [`Relations Suite`](https://community.obsidian.md/plugins/relations-suite) | Reciprocal properties; family logic; relation/family graphs; shortest paths | Overlaps on relations; link labels and composition; no reciprocal property writes |
+| [`Typed Links`](https://github.com/Querulantenkind/obsidian-typed-links-plugin) | Unlisted; typed-wikilink syntax; badges; incoming/outgoing panel; typed graph | Alternative syntax: ordinary properties and inline fields remain readable without the plugin |
+| [`Wikilink Types`](https://community.obsidian.md/plugins/wikilink-types) | @type in wikilink aliases; autocomplete; copies types to frontmatter; no inverse | Alternative storage: plain properties/inline fields; inferred inverse labels |
 
 Last searched for similar plugins on 2026-10-26.
 
@@ -107,10 +111,6 @@ Contributions are welcome — see [CONTRIBUTING](./CONTRIBUTING.md) to get set u
 <a href="https://www.buymeacoffee.com/mnaoumov" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" height="60" width="217"></a>
 
 <!-- markdownlint-enable MD033 -->
-
-## My other Obsidian resources
-
-[See my other Obsidian resources](https://github.com/mnaoumov/obsidian-resources).
 
 ## License
 
