@@ -20,11 +20,11 @@ import {
   vi
 } from 'vitest';
 
-import { RelationIndexComponent } from '../relation-index-component.ts';
+import { RelationIndexComponent } from '../relation-index/relation-index-component.ts';
 import {
   parseRelationDefinitions,
   RelationRegistry
-} from '../relation-registry.ts';
+} from '../relation-registry/relation-registry.ts';
 import { createLinkBadgeExtension } from './link-badge-view-plugin.ts';
 
 const ALICE_CONTENT = '---\nchild: "[[Bob]]"\n---\nspouse:: [[Dan]]\nSee [[Carol]].\n';

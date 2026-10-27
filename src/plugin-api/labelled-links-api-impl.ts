@@ -16,14 +16,14 @@ import type {
   LabelledLinksGetDerivedRelationsOptions,
   LabelledLinksGetRelationsOptions,
   LabelledLinksRelation
-} from '../api.d.ts';
+} from '../../api.d.ts';
 import type {
   DerivedRelation,
   Relation,
   RelationIndexComponent
-} from './relation-index-component.ts';
+} from '../relation-index/relation-index-component.ts';
 
-import { RelationDirection } from './relation-index-component.ts';
+import { RelationDirection } from '../relation-index/relation-index-component.ts';
 
 /**
  * This plugin's API, as it is actually implemented.

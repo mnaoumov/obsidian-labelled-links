@@ -10,7 +10,7 @@ import {
   MarkdownView
 } from 'obsidian';
 
-import type { RelationIndexComponent } from './relation-index-component.ts';
+import type { RelationIndexComponent } from '../relation-index/relation-index-component.ts';
 
 import {
   createLinkBadgeEl,

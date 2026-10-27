@@ -10,23 +10,23 @@ import { PluginBase } from '@mnaoumov/obsidian-lib/plugin/plugin';
 import { PluginEventSourceImpl } from '@mnaoumov/obsidian-lib/plugin/plugin-event-source';
 import { PluginViewRegistrar } from '@mnaoumov/obsidian-lib/view-registrar';
 
-import { OpenRelationsPaneCommandHandler } from './command-handlers/open-relations-pane-command-handler.ts';
-import { RebuildRelationIndexCommandHandler } from './command-handlers/rebuild-relation-index-command-handler.ts';
-import { createLinkBadgeExtension } from './editor-extensions/link-badge-view-plugin.ts';
-import { LabelledLinksApiImpl } from './labelled-links-api-impl.ts';
+import { LinkBadgeReadingViewComponent } from './link-badges/link-badge-reading-view-component.ts';
+import { createLinkBadgeExtension } from './link-badges/link-badge-view-plugin.ts';
+import { LabelledLinksApiImpl } from './plugin-api/labelled-links-api-impl.ts';
 import {
   PLUGIN_API_CONTRACT,
   PLUGIN_API_VERSION,
   RELATIONS_CHANGED_EVENT_NAME
-} from './labelled-links-api.ts';
-import { LinkBadgeReadingViewComponent } from './link-badge-reading-view-component.ts';
+} from './plugin-api/labelled-links-api.ts';
 import { PluginSettingsComponent } from './plugin-settings-component.ts';
 import { PluginSettingsTab } from './plugin-settings-tab.ts';
-import { RelationIndexComponent } from './relation-index-component.ts';
+import { RebuildRelationIndexCommandHandler } from './relation-index/rebuild-relation-index-command-handler.ts';
+import { RelationIndexComponent } from './relation-index/relation-index-component.ts';
+import { OpenRelationsPaneCommandHandler } from './relations-pane/open-relations-pane-command-handler.ts';
 import {
   RELATIONS_VIEW_TYPE,
   RelationsView
-} from './views/relations-view.ts';
+} from './relations-pane/relations-view.ts';
 
 export class Plugin extends PluginBase {
   private labelledLinksApi: LabelledLinksApiImpl | null = null;

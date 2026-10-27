@@ -4,13 +4,13 @@ import { appendCodeBlock } from '@mnaoumov/obsidian-lib/html-element';
 import { PluginSettingsTabBase } from '@mnaoumov/obsidian-lib/plugin/plugin-settings-tab';
 
 import type { PluginSettings } from './plugin-settings.ts';
-import type { RelationPreset } from './relation-presets.ts';
+import type { RelationPreset } from './relation-registry/relation-presets.ts';
 
 import {
   getOverriddenPresetLines,
   RELATION_PRESETS,
   togglePreset
-} from './relation-presets.ts';
+} from './relation-registry/relation-presets.ts';
 
 const REGISTRY_TEXT_AREA_ROWS = 8;
 

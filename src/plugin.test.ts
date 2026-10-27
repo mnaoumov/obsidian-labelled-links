@@ -20,18 +20,18 @@ import {
 
 import type { PluginSettingsComponent } from './plugin-settings-component.ts';
 
-import { LabelledLinksApiImpl } from './labelled-links-api-impl.ts';
+import { LabelledLinksApiImpl } from './plugin-api/labelled-links-api-impl.ts';
 import {
   PLUGIN_API_CONTRACT,
   PLUGIN_API_VERSION,
   RELATIONS_CHANGED_EVENT_NAME
-} from './labelled-links-api.ts';
+} from './plugin-api/labelled-links-api.ts';
 import { Plugin } from './plugin.ts';
-import { RelationIndexComponent } from './relation-index-component.ts';
+import { RelationIndexComponent } from './relation-index/relation-index-component.ts';
 import {
   RELATIONS_VIEW_TYPE,
   RelationsView
-} from './views/relations-view.ts';
+} from './relations-pane/relations-view.ts';
 
 interface AppGlobal {
   app: AppOriginal;

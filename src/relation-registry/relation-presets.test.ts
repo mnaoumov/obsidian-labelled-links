@@ -5,7 +5,7 @@ import {
   it
 } from 'vitest';
 
-import { RelationIndexComponent } from './relation-index-component.ts';
+import { RelationIndexComponent } from '../relation-index/relation-index-component.ts';
 import {
   FAMILY_PRESET,
   getIncludedPresetLines,

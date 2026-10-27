@@ -18,12 +18,12 @@ import {
   vi
 } from 'vitest';
 
-import { LinkBadgeReadingViewComponent } from './link-badge-reading-view-component.ts';
-import { RelationIndexComponent } from './relation-index-component.ts';
+import { RelationIndexComponent } from '../relation-index/relation-index-component.ts';
 import {
   parseRelationDefinitions,
   RelationRegistry
-} from './relation-registry.ts';
+} from '../relation-registry/relation-registry.ts';
+import { LinkBadgeReadingViewComponent } from './link-badge-reading-view-component.ts';
 
 const ALICE_CONTENT = 'spouse:: [[Dan]]\nSee [[Dan]], [[Carol]] and [mentor:: [[Carol]]].\n';
 

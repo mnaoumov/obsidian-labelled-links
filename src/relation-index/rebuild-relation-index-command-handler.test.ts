@@ -9,7 +9,7 @@ import {
   vi
 } from 'vitest';
 
-import type { RelationIndexComponent } from '../relation-index-component.ts';
+import type { RelationIndexComponent } from './relation-index-component.ts';
 
 import { RebuildRelationIndexCommandHandler } from './rebuild-relation-index-command-handler.ts';
 
