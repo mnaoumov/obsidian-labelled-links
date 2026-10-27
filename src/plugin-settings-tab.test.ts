@@ -6,14 +6,12 @@ import { SettingEx } from '@mnaoumov/obsidian-lib/setting-ex';
 import { AsyncEvents } from '@mnaoumov/typescript-lib/async-events';
 import { noopAsync } from '@mnaoumov/typescript-lib/function';
 import { castTo } from '@mnaoumov/typescript-lib/object-utils';
-import { ensureGenericObject } from '@mnaoumov/typescript-lib/type-guards';
 import { strictProxy } from '@mnaoumov/typescript-test-toolkit/strict-proxy';
 import {
   App,
   ToggleComponent
 } from 'obsidian-test-mocks/obsidian';
 import {
-  beforeAll,
   describe,
   expect,
   it,
@@ -43,15 +41,6 @@ class MockDataHandler implements DataHandler {
     await noopAsync();
   }
 }
-
-// `PluginSettingsTabBase.bind()` reads `setPlaceholderValue` to tell a text-based component from the others, and
-// The mock toggle, a strict proxy, throws on a member it does not have.
-beforeAll(() => {
-  const prototype = ensureGenericObject(ToggleComponent.prototype);
-  if (!('setPlaceholderValue' in prototype)) {
-    prototype['setPlaceholderValue'] = undefined;
-  }
-});
 
 async function createTab(data: unknown = {}): Promise<TabFixture> {
   const app = App.createConfigured__();
