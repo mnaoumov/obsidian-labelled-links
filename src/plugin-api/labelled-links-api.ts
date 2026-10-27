@@ -10,9 +10,9 @@
 
 import type { ApiContract } from '@mnaoumov/typescript-lib/api-contract';
 
-import type { RelationsChangedEventName } from '../api.d.ts';
+import type { RelationsChangedEventName } from '../../api.d.ts';
 
-import { LABELLED_LINKS_API_CONTRACT } from '../api-contract.ts';
+import { LABELLED_LINKS_API_CONTRACT } from '../../api-contract.ts';
 
 export type {
   LabelledLinksApi,
@@ -23,7 +23,7 @@ export type {
   LabelledLinksRelationDirection,
   RelationsChangedEventName,
   RelationsChangedEventPayload
-} from '../api.d.ts';
+} from '../../api.d.ts';
 
 /**
  * Triggered on `app.workspace` when notes' relations may have changed.

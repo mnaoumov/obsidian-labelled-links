@@ -20,9 +20,9 @@ import type {
   LabelledLinksApi,
   LabelledLinksDerivedRelation,
   LabelledLinksRelation
-} from '../api.d.ts';
+} from '../../api.d.ts';
 
-import { LABELLED_LINKS_API_CONTRACT } from '../api-contract.ts';
+import { LABELLED_LINKS_API_CONTRACT } from '../../api-contract.ts';
 
 const app = App.createConfigured__({ files: { 'Alice.md': '' } });
 const alice = ensureNonNullable(app.vault.getFileByPath('Alice.md')).asOriginalType__();

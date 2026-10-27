@@ -7,13 +7,13 @@ import {
   it
 } from 'vitest';
 
-import { LABELLED_LINKS_API_CONTRACT } from '../api-contract.ts';
-import { LabelledLinksApiImpl } from './labelled-links-api-impl.ts';
-import { RelationIndexComponent } from './relation-index-component.ts';
+import { LABELLED_LINKS_API_CONTRACT } from '../../api-contract.ts';
+import { RelationIndexComponent } from '../relation-index/relation-index-component.ts';
 import {
   parseRelationDefinitions,
   RelationRegistry
-} from './relation-registry.ts';
+} from '../relation-registry/relation-registry.ts';
+import { LabelledLinksApiImpl } from './labelled-links-api-impl.ts';
 
 interface ApiFixture {
   readonly api: LabelledLinksApiImpl;

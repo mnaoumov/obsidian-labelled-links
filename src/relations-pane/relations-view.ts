@@ -20,7 +20,7 @@ import type {
   DerivedRelation,
   Relation,
   RelationIndexComponent
-} from '../relation-index-component.ts';
+} from '../relation-index/relation-index-component.ts';
 
 import {
   formatDerivation,
@@ -28,9 +28,9 @@ import {
   formatWrittenRelation,
   getNoteName,
   isReferenceCache
-} from '../relation-helpers.ts';
-import { RelationDirection } from '../relation-index-component.ts';
-import { normalizeLabel } from '../relation-registry.ts';
+} from '../relation-index/relation-helpers.ts';
+import { RelationDirection } from '../relation-index/relation-index-component.ts';
+import { normalizeLabel } from '../relation-registry/relation-registry.ts';
 
 /**
  * The view type the relations pane is registered under.

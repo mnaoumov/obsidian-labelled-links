@@ -16,13 +16,13 @@ import type {
 } from './relation-index-component.ts';
 
 import {
+  parseRelationDefinitions,
+  RelationRegistry
+} from '../relation-registry/relation-registry.ts';
+import {
   RelationDirection,
   RelationIndexComponent
 } from './relation-index-component.ts';
-import {
-  parseRelationDefinitions,
-  RelationRegistry
-} from './relation-registry.ts';
 
 interface IndexFixture {
   readonly app: App;

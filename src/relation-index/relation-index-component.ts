@@ -16,18 +16,18 @@ import {
 import { AsyncEvents } from '@mnaoumov/typescript-lib/async-events';
 import { getLinkpath } from 'obsidian';
 
+import type { PropertyFilter } from '../relation-registry/relation-registry.ts';
 import type {
   ExtractedReference,
   LabelForm
 } from './relation-extractor.ts';
-import type { PropertyFilter } from './relation-registry.ts';
 
-import { extractReferences } from './relation-extractor.ts';
 import {
   doesPassPropertyFilters,
   normalizeLabel,
   RelationRegistry
-} from './relation-registry.ts';
+} from '../relation-registry/relation-registry.ts';
+import { extractReferences } from './relation-extractor.ts';
 
 /**
  * Which end of a relation the queried note is.

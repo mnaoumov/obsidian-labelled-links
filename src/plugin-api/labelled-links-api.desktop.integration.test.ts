@@ -5,7 +5,7 @@ import {
   it
 } from 'vitest';
 
-import type { LabelledLinksApi } from '../api.d.ts';
+import type { LabelledLinksApi } from '../../api.d.ts';
 
 const PLUGIN_ID = 'labelled-links';
 

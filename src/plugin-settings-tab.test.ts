@@ -24,7 +24,7 @@ import type { Plugin } from './plugin.ts';
 
 import { PluginSettingsComponent } from './plugin-settings-component.ts';
 import { PluginSettingsTab } from './plugin-settings-tab.ts';
-import { FAMILY_PRESET } from './relation-presets.ts';
+import { FAMILY_PRESET } from './relation-registry/relation-presets.ts';
 
 interface TabFixture {
   readonly pluginSettingsComponent: PluginSettingsComponent;

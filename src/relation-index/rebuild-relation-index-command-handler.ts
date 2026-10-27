@@ -2,7 +2,7 @@ import type { PluginNoticeComponent } from '@mnaoumov/obsidian-lib/components/pl
 
 import { GlobalCommandHandler } from '@mnaoumov/obsidian-lib/command-handlers/global-command-handler';
 
-import type { RelationIndexComponent } from '../relation-index-component.ts';
+import type { RelationIndexComponent } from './relation-index-component.ts';
 
 interface RebuildRelationIndexCommandHandlerConstructorParams {
   readonly pluginNoticeComponent: PluginNoticeComponent;

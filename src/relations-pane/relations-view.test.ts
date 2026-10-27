@@ -17,16 +17,16 @@ import {
   vi
 } from 'vitest';
 
-import type { Relation } from '../relation-index-component.ts';
+import type { Relation } from '../relation-index/relation-index-component.ts';
 
 import {
   RelationDirection,
   RelationIndexComponent
-} from '../relation-index-component.ts';
+} from '../relation-index/relation-index-component.ts';
 import {
   parseRelationDefinitions,
   RelationRegistry
-} from '../relation-registry.ts';
+} from '../relation-registry/relation-registry.ts';
 import {
   RELATIONS_VIEW_TYPE,
   RelationsView

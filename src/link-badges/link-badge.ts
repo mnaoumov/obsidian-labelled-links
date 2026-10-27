@@ -5,14 +5,14 @@ import { setTooltip } from 'obsidian';
 import type {
   Relation,
   RelationIndexComponent
-} from './relation-index-component.ts';
+} from '../relation-index/relation-index-component.ts';
 
 import {
   formatRelationSentence,
   getNoteName,
   isReferenceCache
-} from './relation-helpers.ts';
-import { RelationDirection } from './relation-index-component.ts';
+} from '../relation-index/relation-helpers.ts';
+import { RelationDirection } from '../relation-index/relation-index-component.ts';
 
 /**
  * The class of a link badge, in Live Preview and in Reading view alike.

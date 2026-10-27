@@ -4,11 +4,11 @@ import type { PluginEventSource } from '@mnaoumov/obsidian-lib/plugin/plugin-eve
 import { PluginSettingsComponentBase } from '@mnaoumov/obsidian-lib/components/plugin-settings-component';
 
 import { PluginSettings } from './plugin-settings.ts';
-import { getIncludedPresetLines } from './relation-presets.ts';
+import { getIncludedPresetLines } from './relation-registry/relation-presets.ts';
 import {
   parseRelationDefinitions,
   RelationRegistry
-} from './relation-registry.ts';
+} from './relation-registry/relation-registry.ts';
 
 interface PluginSettingsComponentConstructorParams {
   readonly dataHandler: DataHandler;

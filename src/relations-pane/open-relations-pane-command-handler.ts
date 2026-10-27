@@ -2,7 +2,7 @@ import type { App } from 'obsidian';
 
 import { GlobalCommandHandler } from '@mnaoumov/obsidian-lib/command-handlers/global-command-handler';
 
-import { RELATIONS_VIEW_TYPE } from '../views/relations-view.ts';
+import { RELATIONS_VIEW_TYPE } from './relations-view.ts';
 
 interface OpenRelationsPaneCommandHandlerConstructorParams {
   readonly app: App;

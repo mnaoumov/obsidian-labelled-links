@@ -6,8 +6,8 @@ import {
   vi
 } from 'vitest';
 
-import { RELATIONS_VIEW_TYPE } from '../views/relations-view.ts';
 import { OpenRelationsPaneCommandHandler } from './open-relations-pane-command-handler.ts';
+import { RELATIONS_VIEW_TYPE } from './relations-view.ts';
 
 describe('OpenRelationsPaneCommandHandler', () => {
   it('opens or reveals the relations pane in the right sidebar', async () => {

@@ -27,15 +27,15 @@ import {
   editorLivePreviewField
 } from 'obsidian';
 
-import type { LinkBadge } from '../link-badge.ts';
-import type { RelationIndexComponent } from '../relation-index-component.ts';
+import type { RelationIndexComponent } from '../relation-index/relation-index-component.ts';
+import type { LinkBadge } from './link-badge.ts';
 
 import {
   createLinkBadgeEl,
   getLinkBadge,
   getPositionedRelations,
   isRelationInText
-} from '../link-badge.ts';
+} from './link-badge.ts';
 
 /**
  * Asks the badges of one editor to be rebuilt from the index.

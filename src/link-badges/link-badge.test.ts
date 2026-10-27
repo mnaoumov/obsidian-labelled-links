@@ -6,6 +6,11 @@ import {
   it
 } from 'vitest';
 
+import { RelationIndexComponent } from '../relation-index/relation-index-component.ts';
+import {
+  parseRelationDefinitions,
+  RelationRegistry
+} from '../relation-registry/relation-registry.ts';
 import {
   createLinkBadgeEl,
   getLinkBadge,
@@ -13,11 +18,6 @@ import {
   isRelationInText,
   LINK_BADGE_CLASS
 } from './link-badge.ts';
-import { RelationIndexComponent } from './relation-index-component.ts';
-import {
-  parseRelationDefinitions,
-  RelationRegistry
-} from './relation-registry.ts';
 
 const ALICE_CONTENT = '---\nchild: "[[Bob]]"\n---\nspouse:: [[Dan]]\nSee [[Carol]] and ![[Photo.png]] [mentor:: [[Ghost]]]\n';
 
