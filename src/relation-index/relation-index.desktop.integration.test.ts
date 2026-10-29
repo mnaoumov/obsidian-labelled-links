@@ -1,3 +1,4 @@
+import dedent from 'dedent';
 import { evalInObsidian } from 'obsidian-integration-testing';
 import {
   describe,
@@ -11,21 +12,20 @@ const PLUGIN_ID = 'labelled-links';
 // Extractor's assumptions about it are checked: a list property caches one link per item, a value holding
 // Several links caches one bogus link the extractor replaces, an inline field leaves no trace in the cache, and a
 // Link's cached end is where a hidden `%%:label%%` comment starts.
-const ALICE_CONTENT = [
-  '---',
-  'child:',
-  '  - "[[LL Bob]]"',
-  '  - "[[LL Carol]]"',
-  'sibling: "[[LL Bob]], [[LL Carol]]"',
-  '---',
-  '',
-  'spouse:: [[LL Dan]]',
-  '',
-  'Met [[LL Bob]] at work [mentor:: [[LL Carol]]].',
-  '',
-  'Visits [[LL Dan]]%%:friend%% on Sundays.',
-  ''
-].join('\n');
+const ALICE_CONTENT = dedent`
+  ---
+  child:
+    - "[[LL Bob]]"
+    - "[[LL Carol]]"
+  sibling: "[[LL Bob]], [[LL Carol]]"
+  ---
+
+  spouse:: [[LL Dan]]
+
+  Met [[LL Bob]] at work [mentor:: [[LL Carol]]].
+
+  Visits [[LL Dan]]%%:friend%% on Sundays.\n
+`;
 
 describe('Relation index', () => {
   it('counts the relations real Obsidian caches for properties and inline fields', async () => {
