@@ -1,3 +1,4 @@
+import dedent from 'dedent';
 import { evalInObsidian } from 'obsidian-integration-testing';
 import {
   describe,
@@ -5,16 +6,15 @@ import {
   it
 } from 'vitest';
 
-const ALICE_CONTENT = [
-  '---',
-  'child: "[[LB Bob]]"',
-  '---',
-  '',
-  'spouse:: [[LB Dan]]',
-  '',
-  'Met [[LB Carol]] at work [mentor:: [[LB Carol]]].',
-  ''
-].join('\n');
+const ALICE_CONTENT = dedent`
+  ---
+  child: "[[LB Bob]]"
+  ---
+
+  spouse:: [[LB Dan]]
+
+  Met [[LB Carol]] at work [mentor:: [[LB Carol]]].\n
+`;
 
 interface BadgeSnapshot {
   readonly label: string;

@@ -1,3 +1,4 @@
+import dedent from 'dedent';
 import { evalInObsidian } from 'obsidian-integration-testing';
 import {
   describe,
@@ -7,21 +8,19 @@ import {
 
 const PLUGIN_ID = 'labelled-links';
 
-const ALICE_CONTENT = [
-  '---',
-  'child: "[[RP Bob]]"',
-  '---',
-  '',
-  'spouse:: [[RP Dan]]',
-  ''
-].join('\n');
+const ALICE_CONTENT = dedent`
+  ---
+  child: "[[RP Bob]]"
+  ---
 
-const BOB_CONTENT = [
-  '# RP Bob',
-  '',
-  'Works with [[RP Carol]] on Fridays.',
-  ''
-].join('\n');
+  spouse:: [[RP Dan]]\n
+`;
+
+const BOB_CONTENT = dedent`
+  # RP Bob
+
+  Works with [[RP Carol]] on Fridays.\n
+`;
 
 interface PaneGroup {
   readonly label: string;
