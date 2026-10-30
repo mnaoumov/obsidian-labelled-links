@@ -2,6 +2,12 @@
 
 This file provides guidance to AI coding agents working with code in this repository.
 
+## Filing an issue (for AI agents and humans)
+
+Open issues through the [issue forms](https://github.com/mnaoumov/obsidian-labelled-links/issues/new/choose), not as blank issues.
+
+Filing from the CLI or the API (`gh issue create --body`, or an AI agent filing for you) skips the form, and `gh issue create --template` cannot load an issue form. In that case, open the matching form in [`.github/ISSUE_TEMPLATE/`](https://github.com/mnaoumov/obsidian-labelled-links/tree/HEAD/.github/ISSUE_TEMPLATE), copy every field as a `### <label>` heading in the form's order, and fill in each one. Always state the plugin version, the Obsidian version and your operating system.
+
 ## Overview
 
 `Labelled Links` labels the links between notes. A link from `A` to `B` is an arrow, and a backlink is the same arrow seen from `B`. This plugin gives that arrow a label (`employee:: [[B]]` in `A`: `B is A's employee`) and shows the inverse label from the other end (`A is B's employer`).
