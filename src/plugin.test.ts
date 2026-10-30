@@ -69,12 +69,13 @@ describe('Plugin', () => {
     expect(Plugin.prototype).toBeInstanceOf(ObsidianPlugin);
   });
 
-  it('registers the open pane, rebuild and open demo vault commands', async () => {
+  it('registers the open pane, rebuild, report bug and open demo vault commands', async () => {
     const plugin = new Plugin(app, manifest);
     const addCommandSpy = vi.spyOn(plugin, 'addCommand');
     await plugin.onload();
     expect(addCommandSpy).toHaveBeenCalledWith(expect.objectContaining({ id: 'open-relations-pane' }));
     expect(addCommandSpy).toHaveBeenCalledWith(expect.objectContaining({ id: 'rebuild-relation-index' }));
+    expect(addCommandSpy).toHaveBeenCalledWith(expect.objectContaining({ id: 'report-bug' }));
     expect(addCommandSpy).toHaveBeenCalledWith(expect.objectContaining({ id: 'open-demo-vault' }));
   });
 
