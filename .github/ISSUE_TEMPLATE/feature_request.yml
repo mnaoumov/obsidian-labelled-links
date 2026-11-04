@@ -37,6 +37,12 @@ body:
       description: What actually happens?
     validations:
       required: true
+  - type: input
+    id: plugin-version
+    attributes:
+      label: Plugin version
+      description: The version of the plugin you are using.
+      placeholder: 1.0.0
   - type: textarea
     attributes:
       label: Attachments
