@@ -7,8 +7,8 @@
 - docs: add issue-filing instructions for AI agents
 - chore(github): give the bug form the field ids bug-report links prefill
 - build(deps): override re2js to ^2.9.1 for GHSA-gg6h-894w-4m9c
-- build(deps): bump typescript-dev-toolkit to ^5.2.0 and apply prefer-dedent
-- build(deps): bump obsidian-dev-toolkit to ^7.1.1 and typescript-dev-toolkit to ^5.1.0
+- build(deps): bump `typescript-dev-toolkit` to ^5.2.0 and apply prefer-dedent
+- build(deps): bump `obsidian-dev-toolkit` to ^7.1.1 and `typescript-dev-toolkit` to ^5.1.0
 - chore(deps): update fast-uri to 3.1.9
 - chore: adopt readonly interface members
 - test: drop obsolete text-component probe patches
@@ -29,11 +29,11 @@
 - fix(relations-pane): say which end a label describes with a sentence
 - fix(settings): render the registry examples as inline code
 - docs(demo-vault): explain the bracketed inline-field forms and show a label with no inverse
-- build(deps): move to obsidian-lib 6 and obsidian-dev-toolkit 5
+- build(deps): move to `obsidian-lib` 6 and `obsidian-dev-toolkit` 5
 
 ## 1.0.0
 
-- build(deps): take typescript-dev-toolkit 3.7.1 and restore the generated format script
+- build(deps): take `typescript-dev-toolkit` 3.7.1 and restore the generated format script
 - docs: add the desktop and mobile screenshots, captured from the demo vault
 - build(deps): bump @mnaoumov/obsidian-dev-toolkit to ^3.6.0
 - docs: demo-vault note for plugin developers and the README skeleton

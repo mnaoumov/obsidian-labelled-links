@@ -682,7 +682,7 @@ function parseLine(line: string): null | RelationDefinition {
 
   const label = getMandatoryNamedGroup(match, 'label');
   const inverseLabel = getMandatoryNamedGroup(match, 'inverseLabel');
-  return !isValidLabel(label) || !isValidLabel(inverseLabel) ? null : { inverseLabel, label };
+  return isValidLabel(label) && isValidLabel(inverseLabel) ? { inverseLabel, label } : null;
 }
 
 function parseRuleLine(line: string): CompositionRule | null {
