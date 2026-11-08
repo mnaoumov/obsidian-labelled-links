@@ -2,45 +2,58 @@
 
 ## 1.2.0
 
-- docs(readme): point bug reports at the Report a bug command
-- feat: add a Report a bug command
-- docs: add issue-filing instructions for AI agents
-- chore(github): give the bug form the field ids bug-report links prefill
-- build(deps): override re2js to ^2.9.1 for GHSA-gg6h-894w-4m9c
-- build(deps): bump `typescript-dev-toolkit` to ^5.2.0 and apply prefer-dedent
-- build(deps): bump `obsidian-dev-toolkit` to ^7.1.1 and `typescript-dev-toolkit` to ^5.1.0
-- chore(deps): update fast-uri to 3.1.9
-- chore: adopt readonly interface members
-- test: drop obsolete text-component probe patches
-- docs(readme): combine related resources and plugin comparisons
-- refactor: group src into subject folders
-- docs(readme): cut the README down to a landing page
-- docs(readme): list similar plugins
-- feat(registry): filter rule steps by property and exclude labels
-- feat(registry): label variants, rule presets and a bundled Family preset
-- feat(registry): declare sub-labels and query a label's wide meaning
-- feat(registry): derive relations from composition rules
-- test(demo-vault): floor `CodeScript Toolkit` at 15.0.0
+This release has 5 new features and 5 documentation changes. 9 maintenance commits (tests, build, CI, refactoring, dependencies) are not listed.
+
+### New
+
+- add a Report a bug command
+- **registry:** filter rule steps by property and exclude labels
+- **registry:** label variants, rule presets and a bundled Family preset
+- **registry:** declare sub-labels and query a label's wide meaning
+- **registry:** derive relations from composition rules
+
+### Documentation
+
+- **readme:** point bug reports at the Report a bug command
+- add issue-filing instructions for AI agents
+- **readme:** combine related resources and plugin comparisons
+- **readme:** cut the README down to a landing page
+- **readme:** list similar plugins
 
 ## 1.1.0
 
-- feat(relations): label a link without rendering the label, as `[[B]]%%:child%%`
-- fix(relations-pane): show an incoming relation's original link as an arrow
-- fix(relations-pane): say which end a label describes with a sentence
-- fix(settings): render the registry examples as inline code
-- docs(demo-vault): explain the bracketed inline-field forms and show a label with no inverse
-- build(deps): move to `obsidian-lib` 6 and `obsidian-dev-toolkit` 5
+This release has 1 new feature, 3 fixes and 1 documentation change. 1 maintenance commit (tests, build, CI, refactoring, dependencies) is not listed.
+
+### New
+
+- **relations:** label a link without rendering the label, as `[[B]]%%:child%%`
+
+### Fixed
+
+- **relations-pane:** show an incoming relation's original link as an arrow
+- **relations-pane:** say which end a label describes with a sentence
+- **settings:** render the registry examples as inline code
+
+### Documentation
+
+- **demo-vault:** explain the bracketed inline-field forms and show a label with no inverse
 
 ## 1.0.0
 
-- build(deps): take `typescript-dev-toolkit` 3.7.1 and restore the generated format script
-- docs: add the desktop and mobile screenshots, captured from the demo vault
-- build(deps): bump @mnaoumov/obsidian-dev-toolkit to ^3.6.0
-- docs: demo-vault note for plugin developers and the README skeleton
-- feat: typed relations API with change events and the plugin-API contract
-- feat: link badges in Live Preview and Reading view
-- feat: relations pane listing a note's relations, links and backlinks
-- feat: relation index and inverse-label registry
-- ci: pin Node 26 in .nvmrc
-- fix(demo-vault): stop linking to the gitignored scratch note
-- chore: scaffold `Labelled Links` with create-obsidian-plugin
+This release has 4 new features, 1 fix and 2 documentation changes. 4 maintenance commits (tests, build, CI, refactoring, dependencies) are not listed.
+
+### New
+
+- typed relations API with change events and the plugin-API contract
+- link badges in Live Preview and Reading view
+- relations pane listing a note's relations, links and backlinks
+- relation index and inverse-label registry
+
+### Fixed
+
+- **demo-vault:** stop linking to the gitignored scratch note
+
+### Documentation
+
+- add the desktop and mobile screenshots, captured from the demo vault
+- demo-vault note for plugin developers and the README skeleton
