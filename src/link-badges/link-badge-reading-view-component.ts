@@ -3,9 +3,9 @@ import type {
   MarkdownPostProcessorContext
 } from 'obsidian';
 
+import { ComponentEx } from '@mnaoumov/obsidian-lib/components/component-ex';
 import { ensureNonNullable } from '@mnaoumov/typescript-lib/type-guards';
 import {
-  Component,
   debounce,
   MarkdownView
 } from 'obsidian';
@@ -37,7 +37,7 @@ export interface LinkBadgeReadingViewComponentConstructorParams {
  * section. A section rendered before the index knew its note carries no badges, so after the index changes, a
  * reading view whose note's badges now differ from the ones it was rendered with is rendered again.
  */
-export class LinkBadgeReadingViewComponent extends Component {
+export class LinkBadgeReadingViewComponent extends ComponentEx {
   private readonly app: App;
   private readonly relationIndex: RelationIndexComponent;
   private readonly renderedBadgeKeys = new Map<string, string>();
