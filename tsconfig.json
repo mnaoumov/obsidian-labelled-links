@@ -24,6 +24,11 @@
     ],
     "verbatimModuleSyntax": true
   },
+  "references": [
+    {
+      "path": "./demo-vault/_assets/CodeScriptToolkit"
+    }
+  ],
   "include": [
     "./*.ts",
     "./eslint.config.*ts",

@@ -7,6 +7,10 @@ import {
   configureCommunityPlugin,
   installConfigureEnableCommunityPlugin
 } from '@mnaoumov/obsidian-lib/community-plugins';
+import {
+  appendCodeBlock,
+  createFragmentWithCodeBlocks
+} from '@mnaoumov/obsidian-lib/html-element';
 import { findPluginApi } from '@mnaoumov/obsidian-lib/plugin/plugin-api';
 import {
   Component,
@@ -21,9 +25,9 @@ import {
  * supported route, which is why that file imports nothing but `obsidian`.
  */
 interface LabelledLinksApi {
-  getDerivedRelations: (pathOrFile: string | TFile, options?: LabelledLinksGetDerivedRelationsOptions) => LabelledLinksDerivedRelation[];
-  getInverseLabel: (label: string) => null | string;
-  getRelations: (pathOrFile: string | TFile, options?: LabelledLinksGetRelationsOptions) => LabelledLinksRelation[];
+  readonly getDerivedRelations: (pathOrFile: string | TFile, options?: LabelledLinksGetDerivedRelationsOptions) => LabelledLinksDerivedRelation[];
+  readonly getInverseLabel: (label: string) => null | string;
+  readonly getRelations: (pathOrFile: string | TFile, options?: LabelledLinksGetRelationsOptions) => LabelledLinksRelation[];
 }
 
 interface LabelledLinksDerivedRelation {
@@ -52,8 +56,21 @@ interface LabelledLinksRelation {
   readonly targetPath: string;
 }
 
+type RelationsChangedEventName = 'labelled-links:relations-changed';
+
 interface RelationsChangedEventPayload {
   readonly paths: null | readonly string[];
+}
+
+type ShowDerivedRelationsOptions = LabelledLinksGetDerivedRelationsOptions;
+
+type ShowRelationsOptions = LabelledLinksGetRelationsOptions;
+
+declare module 'obsidian' {
+  interface Workspace {
+    // eslint-disable-next-line @typescript-eslint/method-signature-style -- Copied from `api.d.ts`: a property member does not merge into an existing overload set.
+    on(name: RelationsChangedEventName, callback: (payload: RelationsChangedEventPayload) => unknown, context?: unknown): EventRef;
+  }
 }
 
 // Shared code for every `code-button` in this vault, so each note's button stays a one-liner instead of a
@@ -67,121 +84,42 @@ const DATAVIEW_PLUGIN_ID = 'dataview';
 const DEFAULT_RELATION_DEFINITIONS = ['parent <-> child', 'spouse <-> spouse', 'sibling <-> sibling'];
 const COMPOSITION_RULES = ['aunt = parent -> sibling', 'sibling-in-law = spouse -> sibling | sibling -> spouse'];
 const SUB_LABELS = ['mentor < teacher'];
-const NOTICE_DURATION_IN_MILLISECONDS = 10000;
-const RELATIONS_CHANGED_EVENT_NAME = 'labelled-links:relations-changed';
+const NOTICE_DURATION_IN_MILLISECONDS = 10_000;
+const RELATIONS_CHANGED_EVENT_NAME: RelationsChangedEventName = 'labelled-links:relations-changed';
 
 // The subscription the listen button creates, kept here so the stop button can find it again. A real plugin
 // Registers the event on its own component and never needs a module-level handle.
 let relationsChangedListeningComponent: Component | null = null;
 
 /**
- * Asks the API for the inverse of a label, as the registry in the settings defines it.
+ * Adds two composition rules to the default registry: `aunt` (a parent's sibling) and `sibling-in-law` (a
+ * spouse's sibling, or a sibling's spouse).
  *
- * Manual equivalent: read **Relation registry** in **Settings -> Community plugins -> Labelled Links**.
+ * Manual equivalent: add the lines `aunt = parent -> sibling` and
+ * `sibling-in-law = spouse -> sibling | sibling -> spouse` to **Relation registry** in the settings tab.
  */
-export function showInverseLabel(app: App, label: string): void {
-  const labelledLinksApi = getApi(app);
-  if (!labelledLinksApi) {
-    return;
-  }
-  const inverseLabel = labelledLinksApi.getInverseLabel(label);
-  new Notice(
-    inverseLabel === null
-      ? `getInverseLabel('${label}') returned null: the registry has no inverse for it.`
-      : `getInverseLabel('${label}') returned '${inverseLabel}'.`,
-    NOTICE_DURATION_IN_MILLISECONDS
-  );
+export async function addCompositionRules(app: App): Promise<void> {
+  await setRelationDefinitions(app, [...DEFAULT_RELATION_DEFINITIONS, ...COMPOSITION_RULES]);
 }
 
 /**
- * Asks the API for a note's relations and shows one line per relation, the way the relations pane reads it.
+ * Adds a sub-label to the default registry: `mentor < teacher`, so a query for `teacher` can ask to include the
+ * `mentor` links too.
  *
- * Manual equivalent: open the note and the relations pane, as on **03 Relations pane**.
+ * Manual equivalent: add the line `mentor < teacher` to **Relation registry** in the settings tab.
  */
-export function showRelations(app: App, notePath: string, options?: LabelledLinksGetRelationsOptions): void {
-  const labelledLinksApi = getApi(app);
-  if (!labelledLinksApi) {
-    return;
-  }
-  const relations = labelledLinksApi.getRelations(notePath, options);
-  const lines = relations.map((relation) => {
-    const label = relation.label ?? '(plain link)';
-    return relation.direction === 'outgoing'
-      ? `outgoing ${label} -> ${getBaseName(relation.targetPath)}`
-      : `incoming ${label} <- ${getBaseName(relation.sourcePath)}`;
-  });
-  new Notice(
-    `getRelations('${getBaseName(notePath)}'${options ? `, ${JSON.stringify(options)}` : ''}) returned ${String(relations.length)}:\n${lines.join('\n')}`,
-    NOTICE_DURATION_IN_MILLISECONDS
-  );
+export async function addSubLabels(app: App): Promise<void> {
+  await setRelationDefinitions(app, [...DEFAULT_RELATION_DEFINITIONS, ...SUB_LABELS]);
 }
 
 /**
- * Asks the API for the relations the registry's composition rules derive for a note, and shows one line per
- * relation with the chain that produced it.
+ * Includes the bundled Family preset, so its pairs, rules and label variants apply after the user's own registry.
  *
- * Manual equivalent: open the note and read the **Derived** section of the relations pane, as on
- * **03 Relations pane**.
+ * Manual equivalent: switch on **Family preset** in **Settings -> Community plugins -> `Labelled Links`**.
  */
-export function showDerivedRelations(app: App, notePath: string, options?: LabelledLinksGetDerivedRelationsOptions): void {
-  const labelledLinksApi = getApi(app);
-  if (!labelledLinksApi) {
-    return;
-  }
-  const relations = labelledLinksApi.getDerivedRelations(notePath, options);
-  const lines = relations.map((relation) => {
-    const chain = relation.steps.map((step) => step.label).join(' -> ');
-    return `${relation.label} -> ${getBaseName(relation.targetPath)} (through ${chain})`;
-  });
-  new Notice(
-    `getDerivedRelations('${getBaseName(notePath)}'${options ? `, ${JSON.stringify(options)}` : ''}) returned ${String(relations.length)}:\n${lines.join('\n')}`,
-    NOTICE_DURATION_IN_MILLISECONDS
-  );
-}
-
-/**
- * Subscribes to the `labelled-links:relations-changed` event and shows a notice each time it fires, until the
- * stop button below.
- *
- * Manual equivalent: the same `app.workspace.on(...)` call from your own plugin's `onload`.
- */
-export function startListeningToRelationsChanged(app: App): void {
-  if (relationsChangedListeningComponent) {
-    new Notice('Already listening. Edit a note, or rebuild the relation index.');
-    return;
-  }
-
-  const component = new Component();
-  component.registerEvent(
-    app.workspace.on(RELATIONS_CHANGED_EVENT_NAME, (payload: RelationsChangedEventPayload) => {
-      new Notice(
-        payload.paths === null
-          ? 'Relations changed: any note may have changed.'
-          : `Relations changed: ${payload.paths.map(getBaseName).join(', ')}`
-      );
-    })
-  );
-  component.load();
-  relationsChangedListeningComponent = component;
-
-  new Notice('Listening. Now edit a note, or rebuild the relation index.');
-}
-
-/**
- * Drops the subscription the listen button made.
- *
- * Manual equivalent: unloading the component that registered it, which a plugin gets for free when it is
- * disabled.
- */
-export function stopListeningToRelationsChanged(): void {
-  if (!relationsChangedListeningComponent) {
-    new Notice('Not listening.');
-    return;
-  }
-
-  relationsChangedListeningComponent.unload();
-  relationsChangedListeningComponent = null;
-  new Notice('Stopped listening.');
+export async function includeFamilyPreset(app: App): Promise<void> {
+  await configureCommunityPlugin({ app, pluginId: PLUGIN_ID, settings: { includedPresets: ['family'] } });
+  new Notice('The family preset is included. It is live -- no reload needed.');
 }
 
 /**
@@ -209,13 +147,20 @@ export async function installDataview(app: App): Promise<void> {
 }
 
 /**
- * Runs the plugin's `Rebuild relation index` command, which reads every note again and shows how many
- * relations it found.
+ * Opens a note in Reading view or in Live Preview, where the plugin puts a badge with the label after each
+ * labelled link.
  *
- * Manual equivalent: `Labelled Links: Rebuild relation index` in the Command Palette.
+ * Manual equivalent: open the note, then pick **Reading view** or **Live Preview** from the `...` menu in the
+ * note's header (or press `Ctrl+E` / `Cmd+E` to switch between reading and editing).
  */
-export function rebuildRelationIndex(app: App): void {
-  app.commands.executeCommandById(`${PLUGIN_ID}:rebuild-relation-index`);
+export async function openNoteIn(app: App, notePath: string, mode: 'live-preview' | 'reading'): Promise<void> {
+  const file = app.vault.getFileByPath(notePath);
+  if (!file) {
+    new Notice(`${notePath} is missing from this vault.`);
+    return;
+  }
+  const state = mode === 'reading' ? { mode: 'preview' } : { mode: 'source', source: false };
+  await app.workspace.getLeaf(false).openFile(file, { state });
 }
 
 /**
@@ -234,34 +179,13 @@ export async function openRelationsPane(app: App, notePath: string): Promise<voi
 }
 
 /**
- * Opens a note in Reading view or in Live Preview, where the plugin puts a badge with the label after each
- * labelled link.
+ * Runs the plugin's `Rebuild relation index` command, which reads every note again and shows how many
+ * relations it found.
  *
- * Manual equivalent: open the note, then pick **Reading view** or **Live Preview** from the `...` menu in the
- * note's header (or press `Ctrl+E` / `Cmd+E` to switch between reading and editing).
+ * Manual equivalent: `Labelled Links: Rebuild relation index` in the Command Palette.
  */
-export async function openNoteIn(app: App, notePath: string, mode: 'live-preview' | 'reading'): Promise<void> {
-  const file = app.vault.getFileByPath(notePath);
-  if (!file) {
-    new Notice(`${notePath} is missing from this vault.`);
-    return;
-  }
-  const state = mode === 'reading' ? { mode: 'preview' } : { mode: 'source', source: false };
-  await app.workspace.getLeaf(false).openFile(file, { state });
-}
-
-/**
- * Sets the plugin's relation registry to the given definitions.
- *
- * `configureCommunityPlugin` routes through the plugin's own settings component while it is loaded, so the
- * change applies live -- no window reload, and no writing `data.json` behind a running plugin's back, which
- * it would overwrite from memory as it unloads.
- *
- * Manual equivalent: edit **Relation registry** in **Settings -> Community plugins -> Labelled Links**.
- */
-export async function setRelationDefinitions(app: App, relationDefinitions: string[]): Promise<void> {
-  await configureCommunityPlugin({ app, pluginId: PLUGIN_ID, settings: { relationDefinitions } });
-  new Notice(`The relation registry now has ${String(relationDefinitions.length)} definition(s). It is live -- no reload needed.`);
+export function rebuildRelationIndex(app: App): void {
+  app.commands.executeCommandById(`${PLUGIN_ID}:rebuild-relation-index`);
 }
 
 /**
@@ -276,60 +200,155 @@ export async function resetRelationDefinitions(app: App): Promise<void> {
 }
 
 /**
- * Includes the bundled Family preset, so its pairs, rules and label variants apply after the user's own registry.
+ * Sets the plugin's relation registry to the given definitions.
  *
- * Manual equivalent: switch on **Family preset** in **Settings -> Community plugins -> Labelled Links**.
+ * `configureCommunityPlugin` routes through the plugin's own settings component while it is loaded, so the
+ * change applies live -- no window reload, and no writing `data.json` behind a running plugin's back, which
+ * it would overwrite from memory as it unloads.
+ *
+ * Manual equivalent: edit **Relation registry** in **Settings -> Community plugins -> `Labelled Links`**.
  */
-export async function includeFamilyPreset(app: App): Promise<void> {
-  await configureCommunityPlugin({ app, pluginId: PLUGIN_ID, settings: { includedPresets: ['family'] } });
-  new Notice('The Family preset is included. It is live -- no reload needed.');
+export async function setRelationDefinitions(app: App, relationDefinitions: string[]): Promise<void> {
+  await configureCommunityPlugin({ app, pluginId: PLUGIN_ID, settings: { relationDefinitions } });
+  new Notice(`The relation registry now has ${String(relationDefinitions.length)} definition(s). It is live -- no reload needed.`);
 }
 
 /**
- * Adds two composition rules to the default registry: `aunt` (a parent's sibling) and `sibling-in-law` (a
- * spouse's sibling, or a sibling's spouse).
+ * Asks the API for the relations the registry's composition rules derive for a note, and shows one line per
+ * relation with the chain that produced it.
  *
- * Manual equivalent: add the lines `aunt = parent -> sibling` and
- * `sibling-in-law = spouse -> sibling | sibling -> spouse` to **Relation registry** in the settings tab.
+ * Manual equivalent: open the note and read the **Derived** section of the relations pane, as on
+ * **03 Relations pane**.
  */
-export async function addCompositionRules(app: App): Promise<void> {
-  await setRelationDefinitions(app, [...DEFAULT_RELATION_DEFINITIONS, ...COMPOSITION_RULES]);
+export function showDerivedRelations(_app: App, notePath: string, options?: ShowDerivedRelationsOptions): void {
+  const labelledLinksApi = getApi();
+  if (!labelledLinksApi) {
+    return;
+  }
+  const relations = labelledLinksApi.getDerivedRelations(notePath, options);
+  const lines = relations.map((relation) => {
+    const chain = relation.steps.map((step) => step.label).join(' -> ');
+    return `${relation.label} -> ${getBaseName(relation.targetPath)} (through ${chain})`;
+  });
+  new Notice(
+    `getDerivedRelations('${getBaseName(notePath)}'${options ? `, ${JSON.stringify(options)}` : ''}) returned ${String(relations.length)}:\n${lines.join('\n')}`,
+    NOTICE_DURATION_IN_MILLISECONDS
+  );
 }
 
 /**
- * Adds a sub-label to the default registry: `mentor < teacher`, so a query for `teacher` can ask to include the
- * `mentor` links too.
+ * Asks the API for the inverse of a label, as the registry in the settings defines it.
  *
- * Manual equivalent: add the line `mentor < teacher` to **Relation registry** in the settings tab.
+ * Manual equivalent: read **Relation registry** in **Settings -> Community plugins -> `Labelled Links`**.
  */
-export async function addSubLabels(app: App): Promise<void> {
-  await setRelationDefinitions(app, [...DEFAULT_RELATION_DEFINITIONS, ...SUB_LABELS]);
+export function showInverseLabel(_app: App, label: string): void {
+  const labelledLinksApi = getApi();
+  if (!labelledLinksApi) {
+    return;
+  }
+  const inverseLabel = labelledLinksApi.getInverseLabel(label);
+  new Notice(
+    inverseLabel === null
+      ? `getInverseLabel('${label}') returned null: the registry has no inverse for it.`
+      : `getInverseLabel('${label}') returned '${inverseLabel}'.`,
+    NOTICE_DURATION_IN_MILLISECONDS
+  );
 }
 
-function getApi(app: App): LabelledLinksApi | null {
+/**
+ * Asks the API for a note's relations and shows one line per relation, the way the relations pane reads it.
+ *
+ * Manual equivalent: open the note and the relations pane, as on **03 Relations pane**.
+ */
+export function showRelations(_app: App, notePath: string, options?: ShowRelationsOptions): void {
+  const labelledLinksApi = getApi();
+  if (!labelledLinksApi) {
+    return;
+  }
+  const relations = labelledLinksApi.getRelations(notePath, options);
+  const lines = relations.map((relation) => {
+    const label = relation.label ?? '(plain link)';
+    return relation.direction === 'outgoing'
+      ? `outgoing ${label} -> ${getBaseName(relation.targetPath)}`
+      : `incoming ${label} <- ${getBaseName(relation.sourcePath)}`;
+  });
+  new Notice(
+    `getRelations('${getBaseName(notePath)}'${options ? `, ${JSON.stringify(options)}` : ''}) returned ${String(relations.length)}:\n${lines.join('\n')}`,
+    NOTICE_DURATION_IN_MILLISECONDS
+  );
+}
+
+/**
+ * Subscribes to the `labelled-links:relations-changed` event and shows a notice each time it fires, until the
+ * stop button below.
+ *
+ * Manual equivalent: the same `app.workspace.on(...)` call from your own plugin's `onload`.
+ */
+export function startListeningToRelationsChanged(app: App): void {
+  if (relationsChangedListeningComponent) {
+    new Notice('Already listening. Edit a note, or rebuild the relation index.');
+    return;
+  }
+
+  const component = new Component();
+  component.registerEvent(
+    app.workspace.on(RELATIONS_CHANGED_EVENT_NAME, (payload: RelationsChangedEventPayload) => {
+      new Notice(
+        payload.paths === null
+          ? 'Relations changed: any note may have changed.'
+          : `Relations changed: ${payload.paths.map((path) => getBaseName(path)).join(', ')}`
+      );
+    })
+  );
+  component.load();
+  // eslint-disable-next-line unicorn/no-top-level-assignment-in-function -- The stop button, a separate call, finds the subscription again here; a plugin would register it on its own component.
+  relationsChangedListeningComponent = component;
+
+  new Notice('Listening. Now edit a note, or rebuild the relation index.');
+}
+
+/**
+ * Drops the subscription the listen button made.
+ *
+ * Manual equivalent: unloading the component that registered it, which a plugin gets for free when it is
+ * disabled.
+ */
+export function stopListeningToRelationsChanged(): void {
+  if (!relationsChangedListeningComponent) {
+    new Notice('Not listening.');
+    return;
+  }
+
+  relationsChangedListeningComponent.unload();
+  // eslint-disable-next-line unicorn/no-top-level-assignment-in-function -- See startListeningToRelationsChanged.
+  relationsChangedListeningComponent = null;
+  new Notice('Stopped listening.');
+}
+
+function getApi(): LabelledLinksApi | null {
   const labelledLinksApi = findPluginApi<LabelledLinksApi>({
     apiVersionRange: '^1.2.0',
     pluginId: PLUGIN_ID
   });
   if (!labelledLinksApi) {
-    new Notice('The Labelled Links API is not available. Is the plugin enabled?');
+    new Notice(createFragmentWithCodeBlocks('The `Labelled Links` API is not available. Is the plugin enabled?'));
   }
   return labelledLinksApi;
+}
+
+function getBaseName(path: string): string {
+  return path.split('/').pop()?.replace(/\.md$/, '') ?? path;
 }
 
 async function installCompanionPlugin(app: App, pluginId: string, pluginName: string): Promise<void> {
   new Notice(createFragment((f) => {
     f.appendText('Installing ');
-    f.createEl('code', { text: pluginName });
+    appendCodeBlock(f, pluginName);
     f.appendText('...');
   }));
   await installConfigureEnableCommunityPlugin({ app, pluginId });
   new Notice(createFragment((f) => {
-    f.createEl('code', { text: pluginName });
+    appendCodeBlock(f, pluginName);
     f.appendText(' is installed and enabled.');
   }));
-}
-
-function getBaseName(path: string): string {
-  return path.split('/').pop()?.replace(/\.md$/, '') ?? path;
 }
