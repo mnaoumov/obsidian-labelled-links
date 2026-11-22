@@ -253,10 +253,10 @@ function findCommentLabel(lines: readonly string[], reference: ReferenceCache): 
   return match ? getMandatoryNamedGroup(match, 'key').trim() : null;
 }
 
-function findField(fields: readonly InlineField[], reference: ReferenceCache): InlineField | undefined {
+function findField(fields: readonly InlineField[], reference: ReferenceCache): InlineField | null {
   const { end, start } = reference.position;
   const isSingleLine = start.line === end.line;
-  return fields.find((candidate) => candidate.valueStart <= start.col && (isSingleLine ? end.col : start.col) <= candidate.valueEnd);
+  return fields.find((candidate) => candidate.valueStart <= start.col && (isSingleLine ? end.col : start.col) <= candidate.valueEnd) ?? null;
 }
 
 /**
