@@ -61,18 +61,21 @@ A copy of the vault ships with every release. You can access it via any of the f
 
 | Plugin | Features | How `Labelled Links` differs |
 | --- | --- | --- |
+| [`Bases Link Graph`](https://community.obsidian.md/plugins/bases-link-graph) | Graph view of a base's notes; property-link filter; relation names on hover; colors per relation | Different display: link badges and relations pane rather than a graph; inverse labels |
 | [`Breadcrumbs`](https://community.obsidian.md/plugins/breadcrumbs) | Typed hierarchies from properties, tags, lists and names; implied relations; navigation and diagrams | Overlaps on typed relations; link badges and inverse-label sentences; leaves hierarchy navigation to `Breadcrumbs` |
+| [`EvidenceWeave`](https://community.obsidian.md/plugins/evidence-weave) | Directional labels from relation notes on graph edges; label editing; PDF previews | Different display: labels on editor links and in the relations pane; the label lives on the link itself |
 | [`Graph Edge Notes`](https://community.obsidian.md/plugins/graph-edge-notes) | Frontmatter relationship labels on graph edges; hover detail | Different display: editor links and relations pane rather than graph edges |
 | [`Graph Link Types`](https://community.obsidian.md/plugins/graph-link-types) | Property/inline-field labels on graph edges through `Dataview` | Different display: editor links and relations pane rather than graph edges |
 | [`Minder Nexus`](https://community.obsidian.md/plugins/minder-nexus) | Alias/inline-field types; badges; grouped backlinks; writes inverse properties | Same typed-link goal; inverses stay in memory; composition rules, sub-labels and query API |
 | [`Nodian`](https://community.obsidian.md/plugins/nodian) | Copies backlinks into matching relation properties | Alternative inverse handling: computes in memory; no reciprocal property writes |
 | [`Relate`](https://community.obsidian.md/plugins/relate) | Declared two-way property pairs; connections panel; relationship search | Overlaps on relations; in-memory inverses and link labels; no reciprocal property writes |
 | [`Relation Sync`](https://community.obsidian.md/plugins/relation-sync) | Declared property pairs; previewed inverse writes | Alternative inverse handling: computes in memory; no reciprocal property writes |
+| [`Relations`](https://community.obsidian.md/plugins/relations) | Frontmatter relationship types; relationship graph with typed line styles; family views; embeddable graph blocks | Different display: link badges and relations pane rather than a graph; inverse labels and composition rules |
 | [`Relations Suite`](https://community.obsidian.md/plugins/relations-suite) | Reciprocal properties; family logic; relation/family graphs; shortest paths | Overlaps on relations; link labels and composition; no reciprocal property writes |
 | [`Typed Links`](https://github.com/Querulantenkind/obsidian-typed-links-plugin) | Unlisted; typed-wikilink syntax; badges; incoming/outgoing panel; typed graph | Alternative syntax: ordinary properties and inline fields remain readable without the plugin |
 | [`Wikilink Types`](https://community.obsidian.md/plugins/wikilink-types) | @type in wikilink aliases; autocomplete; copies types to frontmatter; no inverse | Alternative storage: plain properties/inline fields; inferred inverse labels |
 
-Last searched for similar plugins on 2026-10-26.
+Last searched for similar plugins on 2026-11-22.
 
 ## For plugin developers
 
