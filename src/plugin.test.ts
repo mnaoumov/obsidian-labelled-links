@@ -1,6 +1,7 @@
 import type { PluginApiDeclaration } from '@mnaoumov/obsidian-lib/plugin/plugin-api';
 import type {
   App as AppOriginal,
+  EditorSuggestContext,
   MarkdownPostProcessorContext,
   PluginManifest
 } from 'obsidian';
@@ -20,6 +21,7 @@ import {
 
 import type { PluginSettingsComponent } from './plugin-settings-component.ts';
 
+import { LabelSuggest } from './label-suggest/label-suggest.ts';
 import { LabelledLinksApiImpl } from './plugin-api/labelled-links-api-impl.ts';
 import {
   PLUGIN_API_CONTRACT,
@@ -104,6 +106,17 @@ describe('Plugin', () => {
     const el = createDiv();
     await postProcessor(el, strictProxy<MarkdownPostProcessorContext>({ getSectionInfo: () => null, sourcePath: 'Alice.md' }));
     expect(el.childElementCount).toBe(0);
+  });
+
+  it('registers the label suggest over the current registry', async () => {
+    const plugin = new Plugin(app, manifest);
+    const registerEditorSuggestSpy = vi.spyOn(plugin, 'registerEditorSuggest');
+    await plugin.onload();
+    expect(registerEditorSuggestSpy).toHaveBeenCalledTimes(1);
+
+    const labelSuggest = ensureNonNullable(registerEditorSuggestSpy.mock.calls[0]?.[0]);
+    expect(labelSuggest).toBeInstanceOf(LabelSuggest);
+    expect(labelSuggest.getSuggestions(castTo<EditorSuggestContext>({ query: 'chi' }))).toStrictEqual(['child']);
   });
 
   it('gives the index the registry from the settings, and a new one whenever they are saved', async () => {
