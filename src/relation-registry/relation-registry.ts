@@ -229,6 +229,7 @@ export class RelationRegistry {
   }
 
   private readonly inverseLabels = new Map<string, null | string>();
+  private readonly labels = new Map<string, string>();
   private readonly labelVariants = new Map<string, LabelVariants>();
   private readonly rules = new Map<string, CompositionRule>();
   private readonly superLabels = new Map<string, string[]>();
@@ -252,10 +253,6 @@ export class RelationRegistry {
     subLabels: readonly SubLabelDefinition[] = [],
     labelVariants: readonly LabelVariants[] = []
   ) {
-    for (const variants of labelVariants) {
-      this.labelVariants.set(normalizeLabel(variants.label), variants);
-    }
-
     for (const definition of definitions) {
       this.register(definition.label, definition.inverseLabel);
       if (definition.inverseLabel !== null) {
@@ -264,11 +261,19 @@ export class RelationRegistry {
     }
 
     for (const rule of rules) {
+      this.addLabel(rule.label);
       this.rules.set(normalizeLabel(rule.label), rule);
     }
 
     for (const subLabel of subLabels) {
+      this.addLabel(subLabel.label);
+      this.addLabel(subLabel.superLabel);
       this.addSuperLabel(subLabel.label, subLabel.superLabel);
+    }
+
+    for (const variants of labelVariants) {
+      this.addLabel(variants.label);
+      this.labelVariants.set(normalizeLabel(variants.label), variants);
     }
 
     for (const subLabel of subLabels) {
@@ -295,6 +300,16 @@ export class RelationRegistry {
    */
   public getInverseLabel(label: string): null | string {
     return this.inverseLabels.get(normalizeLabel(label)) ?? null;
+  }
+
+  /**
+   * Gets every label the registry knows: both sides of each pair, the labels with no inverse, the rule labels,
+   * both sides of each sub-label line and the labels that have variants.
+   *
+   * @returns The labels as their first line writes them, de-duplicated ignoring case, in the order of the lines.
+   */
+  public getLabels(): string[] {
+    return [...this.labels.values()];
   }
 
   /**
@@ -394,6 +409,13 @@ export class RelationRegistry {
     return false;
   }
 
+  private addLabel(label: string): void {
+    const key = normalizeLabel(label);
+    if (!this.labels.has(key)) {
+      this.labels.set(key, label);
+    }
+  }
+
   private addSuperLabel(label: string, superLabel: string): void {
     const key = normalizeLabel(label);
     let superLabels = this.superLabels.get(key);
@@ -425,6 +447,7 @@ export class RelationRegistry {
   }
 
   private register(label: string, inverseLabel: null | string): void {
+    this.addLabel(label);
     const key = normalizeLabel(label);
     if (!this.inverseLabels.has(key)) {
       this.inverseLabels.set(key, inverseLabel);

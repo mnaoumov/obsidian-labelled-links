@@ -53,6 +53,7 @@ A copy of the vault ships with every release. You can access it via any of the f
 - **Presets** bundle registry lines behind one toggle, for example the bundled **Family** kinship preset. [02 Settings](<./demo-vault/02 Settings.md>)
 - **The relations pane** lists every relation of the active note, outgoing, incoming and derived, plus its plain links and backlinks. [03 Relations pane](<./demo-vault/03 Relations pane.md>)
 - **A badge on each labelled link** shows its label in Live Preview and Reading view, with a tooltip reading it both ways. [04 Link badges](<./demo-vault/04 Link badges.md>)
+- **Label suggestions** offer the registry's labels while you type a field key before `::` or a hidden label after a link, so a label is picked rather than misspelled. [01 Relations](<./demo-vault/01 Relations.md>)
 - **A typed API and a change event** let other plugins and scripts query a note's relations. [05 For plugin developers](<./demo-vault/05 For plugin developers.md>)
 
 ## See also

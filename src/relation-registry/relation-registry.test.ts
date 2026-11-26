@@ -273,6 +273,19 @@ describe('RelationRegistry', () => {
     expect(registry.getInverseLabel(' Employer ')).toBe('employee');
   });
 
+  it('lists every label of every line kind once, as first written', () => {
+    const parsed = parseRelationDefinitions([
+      'employee <-> employer',
+      'mentions',
+      'colleague = employer -> employee',
+      'Employee < worker',
+      'birthMother < mother',
+      'parent @ gender: female -> mother'
+    ]);
+    const labelRegistry = new RelationRegistry(parsed.definitions, parsed.rules, parsed.subLabels, parsed.labelVariants);
+    expect(labelRegistry.getLabels()).toStrictEqual(['employee', 'employer', 'mentions', 'colleague', 'worker', 'birthMother', 'mother', 'parent']);
+  });
+
   it('answers a symmetric label with itself', () => {
     expect(registry.getInverseLabel('spouse')).toBe('spouse');
   });

@@ -43,6 +43,10 @@ Every form above puts the label in the text. To label a link in a sentence witho
 
 A property hides the label from the sentence too, by moving the link out of it: `child: "[Erin](<Erin.md>)"`.
 
+## Label suggestions
+
+You do not have to remember how the registry spells a label. Type the first letters of a field key and then `::`, for example `chi::` on a new line, and a list of the registry's labels that match opens: pick `child` and the line reads `child::` and a space, ready for the link. The list opens again while the cursor is inside a key that `::` already follows, in all three field forms. After a link, type `%%:` and the first letters, for example `[[Erin]]%%:chi`, and the pick finishes the hidden label, closing `%%` included. Each entry shows its inverse label beside it. Ordinary text at the start of a line opens nothing, because the list waits for the `::` or the `%%:`. Try it on an empty line of this note, then undo.
+
 ## Inverse labels
 
 From the other end, a relation shows its inverse label from the registry in [02 Settings](<./02 Settings.md>). Bob's incoming `child` relation from Alice reads as `parent`, and Dan's incoming `spouse` reads as `spouse`, because that label is its own inverse. The inverse is worked out in memory and never written into [Bob](<./Materials/01 Relations/Bob.md>) or Dan.

@@ -5,12 +5,16 @@ import { OpenDemoVaultCommandHandler } from '@mnaoumov/obsidian-lib/command-hand
 import { PluginSettingsTabComponent } from '@mnaoumov/obsidian-lib/components/plugin-settings-tab-component';
 import { PluginDataHandler } from '@mnaoumov/obsidian-lib/data-handler';
 import { PluginEditorExtensionRegistrar } from '@mnaoumov/obsidian-lib/editor-extension-registrar';
+import { PluginEditorSuggestRegistrar } from '@mnaoumov/obsidian-lib/editor-suggest-registrar';
 import { PluginHoverLinkSourceRegistrar } from '@mnaoumov/obsidian-lib/hover-link-source-registrar';
 import { PluginMarkdownPostProcessorRegistrar } from '@mnaoumov/obsidian-lib/markdown-post-processor-registrar';
 import { PluginBase } from '@mnaoumov/obsidian-lib/plugin/plugin';
 import { PluginEventSourceImpl } from '@mnaoumov/obsidian-lib/plugin/plugin-event-source';
 import { PluginViewRegistrar } from '@mnaoumov/obsidian-lib/view-registrar';
 
+import type { RelationRegistry } from './relation-registry/relation-registry.ts';
+
+import { LabelSuggest } from './label-suggest/label-suggest.ts';
 import { LinkBadgeReadingViewComponent } from './link-badges/link-badge-reading-view-component.ts';
 import { createLinkBadgeExtension } from './link-badges/link-badge-view-plugin.ts';
 import { LabelledLinksApiImpl } from './plugin-api/labelled-links-api-impl.ts';
@@ -73,8 +77,10 @@ export class Plugin extends PluginBase {
     );
 
     const relationIndex = this.addChild(new RelationIndexComponent(this.app));
+    let registry = pluginSettingsComponent.createRelationRegistry();
     function updateRegistry(): void {
-      relationIndex.setRegistry(pluginSettingsComponent.createRelationRegistry());
+      registry = pluginSettingsComponent.createRelationRegistry();
+      relationIndex.setRegistry(registry);
     }
     pluginSettingsComponent.on('loadSettings', updateRegistry);
     pluginSettingsComponent.on('saveSettings', updateRegistry);
@@ -95,6 +101,16 @@ export class Plugin extends PluginBase {
     new PluginMarkdownPostProcessorRegistrar(this).registerMarkdownPostProcessor({
       postProcessor: linkBadgeReadingViewComponent.postProcess.bind(linkBadgeReadingViewComponent)
     });
+
+    new PluginEditorSuggestRegistrar(this).registerEditorSuggest(
+      new LabelSuggest({
+        app: this.app,
+        getRegistry(): RelationRegistry {
+          return registry;
+        },
+        pluginName: this.manifest.name
+      })
+    );
 
     new PluginViewRegistrar(this).registerView({
       type: RELATIONS_VIEW_TYPE,
