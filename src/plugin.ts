@@ -7,6 +7,7 @@ import { PluginDataHandler } from '@mnaoumov/obsidian-lib/data-handler';
 import { PluginEditorExtensionRegistrar } from '@mnaoumov/obsidian-lib/editor-extension-registrar';
 import { PluginEditorSuggestRegistrar } from '@mnaoumov/obsidian-lib/editor-suggest-registrar';
 import { PluginHoverLinkSourceRegistrar } from '@mnaoumov/obsidian-lib/hover-link-source-registrar';
+import { PluginMarkdownCodeBlockProcessorRegistrar } from '@mnaoumov/obsidian-lib/markdown-code-block-processor-registrar';
 import { PluginMarkdownPostProcessorRegistrar } from '@mnaoumov/obsidian-lib/markdown-post-processor-registrar';
 import { PluginBase } from '@mnaoumov/obsidian-lib/plugin/plugin';
 import { PluginEventSourceImpl } from '@mnaoumov/obsidian-lib/plugin/plugin-event-source';
@@ -27,6 +28,8 @@ import { PluginSettingsComponent } from './plugin-settings-component.ts';
 import { PluginSettingsTab } from './plugin-settings-tab.ts';
 import { RebuildRelationIndexCommandHandler } from './relation-index/rebuild-relation-index-command-handler.ts';
 import { RelationIndexComponent } from './relation-index/relation-index-component.ts';
+import { RelationsCodeBlockComponent } from './relations-code-block/relations-code-block-component.ts';
+import { RELATIONS_CODE_BLOCK_LANGUAGE } from './relations-code-block/relations-code-block-options.ts';
 import { OpenRelationsPaneCommandHandler } from './relations-pane/open-relations-pane-command-handler.ts';
 import {
   RELATIONS_VIEW_TYPE,
@@ -100,6 +103,13 @@ export class Plugin extends PluginBase {
     const linkBadgeReadingViewComponent = this.addChild(new LinkBadgeReadingViewComponent({ app: this.app, relationIndex }));
     new PluginMarkdownPostProcessorRegistrar(this).registerMarkdownPostProcessor({
       postProcessor: linkBadgeReadingViewComponent.postProcess.bind(linkBadgeReadingViewComponent)
+    });
+
+    new PluginMarkdownCodeBlockProcessorRegistrar(this).registerMarkdownCodeBlockProcessor({
+      handler: (source, el, context) => {
+        context.addChild(new RelationsCodeBlockComponent({ app: this.app, containerEl: el, relationIndex, source, sourcePath: context.sourcePath }));
+      },
+      language: RELATIONS_CODE_BLOCK_LANGUAGE
     });
 
     new PluginEditorSuggestRegistrar(this).registerEditorSuggest(
