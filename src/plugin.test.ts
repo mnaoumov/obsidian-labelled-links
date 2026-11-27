@@ -30,6 +30,8 @@ import {
 } from './plugin-api/labelled-links-api.ts';
 import { Plugin } from './plugin.ts';
 import { RelationIndexComponent } from './relation-index/relation-index-component.ts';
+import { RelationsCodeBlockComponent } from './relations-code-block/relations-code-block-component.ts';
+import { RELATIONS_CODE_BLOCK_LANGUAGE } from './relations-code-block/relations-code-block-options.ts';
 import {
   RELATIONS_VIEW_TYPE,
   RelationsView
@@ -106,6 +108,22 @@ describe('Plugin', () => {
     const el = createDiv();
     await postProcessor(el, strictProxy<MarkdownPostProcessorContext>({ getSectionInfo: () => null, sourcePath: 'Alice.md' }));
     expect(el.childElementCount).toBe(0);
+  });
+
+  it('registers the labelled-links code block, which lists the relations of the note holding it', async () => {
+    const plugin = new Plugin(app, manifest);
+    const registerMarkdownCodeBlockProcessorSpy = vi.spyOn(plugin, 'registerMarkdownCodeBlockProcessor');
+    plugin.load();
+    await vi.waitFor(() => {
+      expect(registerMarkdownCodeBlockProcessorSpy).toHaveBeenCalledWith(RELATIONS_CODE_BLOCK_LANGUAGE, expect.any(Function), undefined);
+    });
+
+    const handler = ensureNonNullable(registerMarkdownCodeBlockProcessorSpy.mock.calls[0]?.[1]);
+    const el = createDiv();
+    const addChild = vi.fn();
+    await handler('', el, strictProxy<MarkdownPostProcessorContext>({ addChild, sourcePath: 'Alice.md' }));
+    expect(addChild).toHaveBeenCalledWith(expect.any(RelationsCodeBlockComponent));
+    plugin.unload();
   });
 
   it('registers the label suggest over the current registry', async () => {

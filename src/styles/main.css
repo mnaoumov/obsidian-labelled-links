@@ -96,3 +96,12 @@
   max-width: 100%;
   width: 18em;
 }
+
+/* The `labelled-links` code block: the pane's list inside a note, kept compact so it fits in a callout. */
+.labelled-links-relations-code-block .labelled-links-relations-section:last-child {
+  margin-bottom: 0;
+}
+
+.labelled-links-relations-code-block-error {
+  color: var(--text-error);
+}
